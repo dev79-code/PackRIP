@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PackRIP — tokenized japanese pack rips, live from osaka</title>
+  <meta name="description" content="Real Japanese Pokémon packs, ripped live on cam in Osaka, paid in $PACKRIP. Burn the token, watch your pack get ripped, choose ship/vault/burn-forward." />
+  <link rel="icon" type="image/png" sizes="32x32" href="img/logo.png" />
+  <link rel="apple-touch-icon" href="img/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scanlines"></div>
+  <div class="grid-bg"></div>
+
+  <!-- ============== TOP NAV ============== -->
+  <nav class="topnav">
+    <a class="nav-logo" href="#top">
+      <img class="nav-logo-img" src="img/logo.png" alt="PackRIP" />
+      <span class="nav-logo-text">PACK<span class="nlt-rip">RIP</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#cam">rip cam</a></li>
+      <li><a href="#packs">pack wall</a></li>
+      <li><a href="#hits">hit board</a></li>
+      <li><a href="#how">how it works</a></li>
+      <li><a href="#tokenomics">$RIP</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a class="nav-x" href="https://x.com/PackRipSOL" target="_blank" rel="noopener" title="follow @PackRipSOL on X">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+        <span class="nav-x-handle">@PackRipSOL</span>
+      </a>
+      <button class="pixel-btn ghost nav-wallet" id="walletBtn" type="button">
+        <span class="wallet-dot"></span><span class="wallet-label">CONNECT WALLET</span>
+      </button>
+      <a class="pixel-btn primary nav-cta" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP ▶</a>
+    </div>
+  </nav>
+
+  <!-- ============== HERO ============== -->
+  <section id="top" class="hero">
+    <div class="hero-content">
+      <div class="live-pill">
+        <span class="dot"></span> LIVE NOW · @kenji_san · ripping a 151 booster
+      </div>
+      <h1 class="logo">
+        <span class="logo-pack">PACK</span><span class="logo-rip">RIP</span>
+      </h1>
+      <p class="tagline">tokenized japanese pack rips. live from osaka.</p>
+      <p class="hero-sub">real packs · real shop · burned on chain · shipped worldwide</p>
+      <div class="hero-cta">
+        <button class="pixel-btn primary big" data-open-rip>▶ TRY A FREE RIP</button>
+        <a href="#cam" class="pixel-btn ghost big">watch the rip cam ▼</a>
+      </div>
+      <div class="hero-stats">
+        <div><b id="statPacks">12</b><span>packs ripped</span></div>
+        <div><b id="statBurn">486K</b><span>$RIP burned</span></div>
+        <div><b id="statHolders">34</b><span>holders</span></div>
+        <div><b id="statWatch">257</b><span>watching now</span></div>
+      </div>
+    </div>
+
+    <div class="hero-cards" id="heroCards">
+      <!-- 12 floating cards injected by JS w/ stock badges -->
+    </div>
+  </section>
+
+  <!-- ============== LIVE RIP CAM ============== -->
+  <section id="cam" class="cam-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ THE RIP CAM</h2>
+      <p class="section-sub">always on during shop hours · 13:00–22:00 JST · the timezone is a feature</p>
+    </div>
+
+    <div class="cam-frame">
+      <img class="cam-img" src="img/shop-wall-tall.jpeg" alt="floor-to-ceiling card display in the osaka shop" onerror="this.style.display='none'" />
+      <div class="cam-overlay">
+        <div class="cam-top">
+          <span class="live-badge"><span class="dot"></span> LIVE · OSAKA</span>
+          <span class="cam-meta">👁 <span id="viewerCount">1,247</span> watching</span>
+        </div>
+        <div class="cam-center">
+          <div class="play-icon">▶</div>
+        </div>
+        <div class="cam-bottom">
+          <div class="cam-handle">@cypherchad</div>
+          <div class="cam-pack">ripping <b>POKEMON 151</b> · burned <b>12,000 $RIP</b></div>
+          <div class="cam-progress"><div class="cam-progress-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cam-side">
+      <div class="queue-box">
+        <div class="queue-label">▶ UP NEXT</div>
+        <ol class="queue-list" id="queueList"></ol>
+        <button class="pixel-btn primary" data-open-rip>JUMP THE QUEUE ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== TICKER ============== -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <!-- ============== THE RIP (MAIN FEATURE) ============== -->
+  <section id="rip" class="rip-feature">
+    <div class="rip-feature-card">
+      <div class="rip-feature-left">
+        <span class="badge-fire">▶ THE MAIN EVENT</span>
+        <h2 class="rip-h">RIP A PACK<br/><span>RIGHT NOW.</span></h2>
+        <p>real Pokémon TCG art. real pull odds. animated rip, holo sheen, sparkle on hits. no wallet. no signup.</p>
+        <button class="pixel-btn primary big" data-open-rip>▶ START FREE RIP</button>
+        <p class="rip-meta">5 cards · localStorage roster · come back anytime</p>
+      </div>
+      <div class="rip-feature-right">
+        <div class="rip-preview-stack">
+          <img src="https://images.pokemontcg.io/sv4pt5/91_hires.png" class="rps rps1" alt="Charizard ex" />
+          <img src="https://images.pokemontcg.io/sv3pt5/199_hires.png" class="rps rps2" alt="Charizard ex" />
+          <img src="https://images.pokemontcg.io/sv3pt5/193_hires.png" class="rps rps3" alt="Mew ex" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== PACK WALL ============== -->
+  <section id="packs" class="packs-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ PACK WALL</h2>
+      <p class="section-sub">live inventory from the osaka shop · prices match the loose-pack market</p>
+      <p class="rate-pill">RATE · 1,000 $RIP burned per $1 USD market value · + 0.05 SOL flat fee</p>
+    </div>
+
+    <div class="packs-filter">
+      <button class="filter-chip active" data-filter="all">all 16</button>
+      <button class="filter-chip" data-filter="vintage">vintage WOTC</button>
+      <button class="filter-chip" data-filter="boutique">boutique</button>
+      <button class="filter-chip" data-filter="modern">modern</button>
+      <button class="filter-chip" data-filter="japan">japan exclusive</button>
+    </div>
+
+    <div class="real-pack-grid" id="realPackGrid"></div>
+  </section>
+
+  <!-- ============== HIT BOARD ============== -->
+  <section id="hits" class="hits-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ HIT BOARD</h2>
+      <p class="section-sub">top pulls this week · clipped, watermarked, on chain</p>
+    </div>
+
+    <div class="hits-tabs">
+      <button class="tab-chip active">this week</button>
+      <button class="tab-chip">all time</button>
+      <button class="tab-chip">vault drops</button>
+    </div>
+
+    <div class="hit-list" id="hitList"></div>
+  </section>
+
+  <!-- ============== POST-RIP OPTIONS ============== -->
+  <section class="postrip-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ AFTER THE RIP</h2>
+      <p class="section-sub">choose what happens to your cards. one click. on chain.</p>
+    </div>
+
+    <div class="postrip-grid">
+      <div class="postrip-card">
+        <div class="pr-img-wrap">
+          <img class="pr-img" src="https://images.unsplash.com/photo-1577563908411-5077b6dc7624?w=600&auto=format&fit=crop&q=80" alt="sealed envelope ready to ship" onerror="this.style.opacity=0" />
+        </div>
+        <h3>SHIP IT</h3>
+        <p>sleeved, top-loaded, tracked. flat <b>$5 worldwide</b> from osaka. arrives in 5–10 days.</p>
+        <div class="pr-tag">most popular</div>
+      </div>
+      <div class="postrip-card">
+        <div class="pr-img-wrap">
+          <img class="pr-img" src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?w=600&auto=format&fit=crop&q=80" alt="bank vault door" onerror="this.style.opacity=0" />
+        </div>
+        <h3>VAULT IT</h3>
+        <p>stays in our physical vault under your wallet. <b>transferable</b> to other holders, zero shipping risk. trade like a token.</p>
+        <div class="pr-tag">collectors</div>
+      </div>
+      <div class="postrip-card">
+        <div class="pr-img-wrap">
+          <img class="pr-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&auto=format&fit=crop&q=80" alt="community raffle crowd" onerror="this.style.opacity=0" />
+        </div>
+        <h3>BURN IT FORWARD</h3>
+        <p>donate the pull to the community pool. <b>monthly raffle</b> draws holders. your name on the wall.</p>
+        <div class="pr-tag">degens</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== HOW IT WORKS ============== -->
+  <section id="how" class="how-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ HOW IT WORKS</h2>
+      <p class="section-sub">six steps. zero friction. one shop in osaka.</p>
+    </div>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h4>buy $RIP</h4>
+          <p>pump.fun launch. your access pass.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h4>pick a pack</h4>
+          <p>scroll the pack wall. real japanese inventory, real photos, live counts.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h4>burn + pay</h4>
+          <p>burn the listed $RIP amount. pay flat 0.05 SOL on top — that's the shop's revenue.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h4>queue up</h4>
+          <p>your handle enters the queue. watch the timer. brag in chat.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <h4>kenji rips it</h4>
+          <p>physical pack, fixed overhead cam, your handle on screen. clip auto-saved.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">06</div>
+        <div class="step-body">
+          <h4>ship · vault · burn fwd</h4>
+          <p>one click decides where the cards go. all on chain. all final.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============== TOKENOMICS ============== -->
+  <section id="tokenomics" class="tokenomics-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ $RIP</h2>
+      <p class="section-sub">every rip burns supply. forever. clean as it gets.</p>
+    </div>
+
+    <div class="tokenomics-grid">
+      <div class="tk-card big">
+        <div class="tk-label">BURNED TO DATE</div>
+        <div class="tk-value" id="tkBurned">486,000</div>
+        <div class="tk-bar"><div class="tk-fill" style="width:0.5%; min-width:8px;"></div></div>
+        <div class="tk-pct">&lt;1% of total supply · day one</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-label">TOTAL SUPPLY</div>
+        <div class="tk-value">1,000,000,000</div>
+        <div class="tk-sub">fixed · no mint</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-label">HOLDERS</div>
+        <div class="tk-value">34</div>
+        <div class="tk-sub">growing daily</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-label">PACKS RIPPED</div>
+        <div class="tk-value" id="tkRipsToday">12</div>
+        <div class="tk-sub">all time · live counter</div>
+      </div>
+    </div>
+
+    <div class="tk-clean">
+      <h3>WHY IT'S CLEAN</h3>
+      <ul>
+        <li><b>shop owner is paid in SOL</b>, never in $RIP — no rev-share dependency, no pass-through securities issue</li>
+        <li><b>token is a pure access pass</b>, burned on use — utility-only, no yield, no expectation of profit from others' efforts</li>
+        <li><b>holders are collectors</b>, not speculators — every wallet is a customer, every customer ships actual cards</li>
+        <li><b>supply shrinks with usage</b> — content + utility loop reinforces itself; the more rips, the rarer the token</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============== THE SHOP / OWNER ============== -->
+  <section class="owner-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ THE SHOP</h2>
+      <p class="section-sub">a real shop. a real person. a global customer base.</p>
+    </div>
+
+    <div class="owner-card">
+      <div class="owner-photo">
+        <img src="img/owner-cards.jpeg" alt="kenji holding a card display in the osaka shop" />
+        <div class="owner-tag">📍 OSAKA · NIPPONBASHI</div>
+      </div>
+      <div class="owner-bio">
+        <h3>kenji-san</h3>
+        <p class="owner-loc">owner · 鉄火カード商店 · est. 2019</p>
+        <p>twenty years buying and grading singles in akihabara. opened a six-tatami corner shop in osaka's nipponbashi district in 2019. every weekday from 13:00 JST he sits behind the counter, queue on the screen beside him, and rips packs for the global internet.</p>
+        <p class="owner-quote">"i was pricing graded mew for one tourist a week. now i'm ripping for sao paulo at 3am their time. this is what the shop was supposed to be."</p>
+        <div class="owner-stats">
+          <div><b>12,304</b><span>packs ripped on cam</span></div>
+          <div><b>4.9★</b><span>shipping rating · 2.1k reviews</span></div>
+          <div><b>5 yr</b><span>shop established</span></div>
+          <div><b>43</b><span>countries shipped to</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== INSIDE THE SHOP — REAL PHOTOS ============== -->
+  <section class="shop-gallery-section">
+    <div class="section-head">
+      <h2 class="section-h">▶ INSIDE THE SHOP</h2>
+      <p class="section-sub">real photos · real shelves · real stock · osaka, japan</p>
+    </div>
+
+    <div class="gallery-grid">
+      <a class="gallery-item gallery-tall" href="img/shop-wall-tall.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-wall-tall.jpeg" alt="floor-to-ceiling card display wall" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">01</span><span>FLOOR TO CEILING · ¥-TAGGED</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-mtg-packs.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-mtg-packs.jpeg" alt="magic the gathering booster boxes and packs" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">02</span><span>SEALED BOOSTERS · MTG · TMNT</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-wall-yellow.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-wall-yellow.jpeg" alt="rows of cards with yellow price tags" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">03</span><span>SINGLES WALL · 8 ROWS</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-display-yugioh.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-display-yugioh.jpeg" alt="cards in display case angled view" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">04</span><span>HOLO CASE · ANGLED VIEW</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-rainbow-cards.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-rainbow-cards.jpeg" alt="rainbow rows of cards on shelves" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">05</span><span>RAINBOW STACKS · ¥-TAGS</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-display-white.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-display-white.jpeg" alt="card display rows with white tags" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">06</span><span>SINGLES · 8 SHELVES DEEP</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-pokemon-yellow.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-pokemon-yellow.jpeg" alt="pokemon card display with yellow tags" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">07</span><span>POKÉMON SINGLES · ¥-TAGGED</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-cards-closeup.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-cards-closeup.jpeg" alt="close up of cards with price tags" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">08</span><span>CLOSE-UP · ¥800–¥23,800</span></div>
+      </a>
+      <a class="gallery-item" href="img/shop-box.jpeg" target="_blank" rel="noopener">
+        <img src="img/shop-box.jpeg" alt="box of new arrivals at the shop" loading="lazy" />
+        <div class="gallery-cap"><span class="gallery-num">09</span><span>NEW ARRIVALS · UNBOXED</span></div>
+      </a>
+    </div>
+
+    <p class="gallery-note">all photos shot inside the shop · no stock images · click to enlarge</p>
+  </section>
+
+  <!-- ============== FOOTER CTA ============== -->
+  <footer class="footer">
+    <div class="footer-cta">
+      <h2>READY TO RIP?</h2>
+      <p>buy $RIP. burn it. watch it rip live. ship the cards home.</p>
+      <div class="footer-cta-row">
+        <a class="pixel-btn primary big" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP ▶</a>
+        <button class="pixel-btn ghost big" data-open-rip>try a free rip first</button>
+      </div>
+      <div class="contract">
+        <span class="ca-label">CA:</span>
+        <code id="caCode">coming soon</code>
+      </div>
+    </div>
+
+    <div class="footer-links">
+      <div>
+        <h4>shop</h4>
+        <a href="#packs">pack wall</a>
+        <a href="#cam">rip cam</a>
+        <a href="#hits">hit board</a>
+        <a href="#" data-open-rip>simulator</a>
+      </div>
+      <div>
+        <h4>token</h4>
+        <a href="#tokenomics">tokenomics</a>
+        <a href="https://pump.fun" target="_blank" rel="noopener">buy on pump.fun</a>
+        <a href="#">dexscreener · soon</a>
+        <a href="#">contract · soon</a>
+      </div>
+      <div>
+        <h4>community</h4>
+        <a href="https://x.com/PackRipSOL" target="_blank" rel="noopener">x · @PackRipSOL</a>
+        <a href="#">telegram</a>
+        <a href="#">discord</a>
+        <a href="#">tiktok clips</a>
+      </div>
+      <div>
+        <h4>shop irl</h4>
+        <a href="#">map (osaka)</a>
+        <a href="#">shipping policy</a>
+        <a href="#">vault rules</a>
+        <a href="#">contact kenji</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 PACKRIP — not financial advice. cards are real. token is for entertainment access only.</p>
+      <p class="footer-built">vibe coded · pixel font · powered by raw caffeine</p>
+    </div>
+  </footer>
+
+  <!-- ============== RIP MODAL (the main feature) ============== -->
+  <div id="ripModal" class="modal" aria-hidden="true">
+    <button class="modal-close" id="modalClose" aria-label="close">×</button>
+
+    <!-- PACK SELECT -->
+    <section id="screen-select" class="screen active">
+      <header class="topbar">
+        <div class="modal-crumb">▶ FREE SIM · pick a pack</div>
+        <div class="coin">
+          <span class="coin-icon">¤</span>
+          <span id="coinCount">9999</span>
+        </div>
+      </header>
+
+      <h2 class="screen-title">CHOOSE YOUR PACK</h2>
+      <p class="screen-sub">free sim · real cards · same odds as the real shop</p>
+
+      <div class="pack-grid" id="packGrid"></div>
+
+      <div class="dialog-box">
+        <p id="selectDialog">what pack do you wanna rip, trainer?</p>
+      </div>
+    </section>
+
+    <!-- RIP -->
+    <section id="screen-rip" class="screen">
+      <div class="rip-stage">
+        <div class="rip-shadow"></div>
+        <div class="pack-3d" id="packStage">
+          <div class="pack-face front" id="packFront"></div>
+          <div class="pack-tear" id="packTear"></div>
+        </div>
+        <button class="pixel-btn primary big rip-btn" id="ripBtn">▼ RIP IT ▼</button>
+        <p class="rip-hint" id="ripHint">mash to tear it open</p>
+      </div>
+    </section>
+
+    <!-- REVEAL -->
+    <section id="screen-reveal" class="screen">
+      <header class="topbar">
+        <div class="reveal-progress">
+          <span id="revealCount">1</span> / <span id="revealTotal">5</span>
+        </div>
+        <button class="pixel-btn ghost" id="skipBtn">skip ▶▶</button>
+      </header>
+
+      <div class="card-stage">
+        <div class="card-deck" id="cardDeck"></div>
+        <button class="pixel-btn primary next-btn" id="nextCardBtn">NEXT ▶</button>
+      </div>
+
+      <div class="dialog-box">
+        <p id="revealDialog">tap the card to flip it.</p>
+      </div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section id="screen-summary" class="screen">
+      <h2 class="screen-title">PACK RIPPED</h2>
+      <p class="screen-sub" id="summaryHype">not bad, trainer.</p>
+
+      <div class="summary-grid" id="summaryGrid"></div>
+
+      <div class="postrip-mini">
+        <div class="pr-mini">📦 SHIP <small>$5</small></div>
+        <div class="pr-mini">🔒 VAULT <small>0 fee</small></div>
+        <div class="pr-mini">▶ BURN FWD <small>raffle</small></div>
+        <p class="pr-mini-note">in the live shop you'd choose now. in the sim, all cards bank to your roster.</p>
+      </div>
+
+      <div class="summary-actions">
+        <button class="pixel-btn primary" id="ripAgainBtn">▶ RIP AGAIN</button>
+        <button class="pixel-btn ghost" data-go="select">change pack</button>
+        <button class="pixel-btn ghost" id="viewRosterBtn">roster (<span id="rosterCount">0</span>)</button>
+      </div>
+    </section>
+
+    <!-- ROSTER -->
+    <section id="screen-roster" class="screen">
+      <header class="topbar">
+        <button class="pixel-btn ghost" data-go="select">← back</button>
+        <h2 class="screen-title small">YOUR ROSTER</h2>
+        <button class="pixel-btn ghost" id="clearRosterBtn">wipe</button>
+      </header>
+
+      <div class="roster-grid" id="rosterGrid"></div>
+
+      <div class="dialog-box">
+        <p>every card you've ripped lives here. holos shine. trash stays trash.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="flash" id="flash"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
