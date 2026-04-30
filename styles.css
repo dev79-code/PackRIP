@@ -2,8 +2,9 @@
    PACKRIP — pixel-art / retro pokémon-game vibe
    ================================================ */
 
+
 :root {
-  --bg-deep: #0b0f1a;
+  --bg-deep: #04060d;
   --bg-panel: #111a2e;
   --bg-panel-2: #1a2547;
   --grid: #1f3a6b;
@@ -61,74 +62,181 @@ html.modal-open, body.modal-open { overflow: hidden; }
 
 /* ============== BACKGROUND FX ============== */
 
-/* Pokémon battle arena background:
-   sky → horizon → perspective grid floor + two glowing battle plates */
+/* Argus-style background:
+   pure black void · faint dot grid · CRT vignette glow · center blueprint sigil */
 .grid-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background:
-    /* spotlights from top */
-    radial-gradient(ellipse 60% 40% at 30% -10%, rgba(43,212,255,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 70% -10%, rgba(255,95,162,0.10) 0%, transparent 60%),
-    /* sky → horizon → ground gradient */
-    linear-gradient(180deg,
-      #1b1238 0%,         /* deep purple top */
-      #1f2348 25%,        /* indigo */
-      #2a3a6e 48%,        /* blue at horizon */
-      #0f1933 55%,        /* darker just below horizon */
-      #0b0f1a 80%,        /* fade to deep */
-      #060912 100%);
+  background-color: #04060d;
+  /* faint dot grid — barely visible, gives texture without competing */
+  background-image:
+    radial-gradient(circle, rgba(232, 243, 255, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: 0 0;
 }
 
-/* perspective grid floor (lower half) — like pokemon stadium tile floor */
+/* CRT-bezel vignette — soft cyan/pink glow on the perimeter, dark void in the middle */
 .grid-bg::before {
-  content: '';
-  position: absolute;
-  bottom: 0; left: -10%; right: -10%;
-  height: 50%;
-  background:
-    linear-gradient(rgba(43,212,255,0.30) 2px, transparent 2px) 0 0 / 100% 36px,
-    linear-gradient(90deg, rgba(43,212,255,0.30) 2px, transparent 2px) 0 0 / 56px 100%;
-  transform: perspective(520px) rotateX(60deg);
-  transform-origin: top center;
-  opacity: 0.95;
-  /* fade edges so the grid blurs into distance/floor */
-  mask-image:
-    linear-gradient(180deg, transparent 0%, #000 14%, #000 88%, transparent 100%),
-    linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
-  -webkit-mask-image:
-    linear-gradient(180deg, transparent 0%, #000 14%, #000 88%, transparent 100%),
-    linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
-}
-
-/* horizon line + two battle plates + faint stadium ring */
-.grid-bg::after {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    /* horizon glow line */
-    linear-gradient(180deg, transparent 53%, rgba(43,212,255,0.55) 55%, transparent 56%),
-    /* left battle plate (cyan, where player's pokemon stands) */
-    radial-gradient(ellipse 28% 6% at 28% 75%, rgba(43,212,255,0.35) 0%, rgba(43,212,255,0.12) 40%, transparent 70%),
-    /* right battle plate (pink, where opponent's pokemon stands) */
-    radial-gradient(ellipse 28% 6% at 72% 75%, rgba(255,95,162,0.32) 0%, rgba(255,95,162,0.10) 40%, transparent 70%),
-    /* stadium dome arc above horizon */
-    radial-gradient(ellipse 80% 30% at 50% 55%, transparent 70%, rgba(43,212,255,0.08) 75%, transparent 85%),
-    /* small star points in the sky */
-    radial-gradient(circle 1px at 12% 14%, #fff 100%, transparent 100%),
-    radial-gradient(circle 1px at 22% 22%, #fff 100%, transparent 100%),
-    radial-gradient(circle 1px at 34% 8%, #fff 100%, transparent 100%),
-    radial-gradient(circle 1px at 48% 18%, #fff 100%, transparent 100%),
-    radial-gradient(circle 1px at 64% 26%, #fff 100%, transparent 100%),
-    radial-gradient(circle 1px at 78% 12%, #fff 100%, transparent 100%),
-    radial-gradient(circle 1px at 88% 24%, #fff 100%, transparent 100%);
+    radial-gradient(ellipse 100% 70% at 50% 50%, transparent 55%, rgba(43, 212, 255, 0.16) 90%, rgba(43, 212, 255, 0.28) 100%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, transparent 60%, rgba(255, 95, 162, 0.10) 100%);
   pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* SVG-based blueprint: vertical conduit + 2 diagonals + diamond sigil — matches argus.gg geometry */
+.bg-blueprint {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.blueprint-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* fade slightly at the edges so the lasers feel infinite */
+  mask-image:
+    radial-gradient(ellipse 90% 80% at 50% 50%, #000 60%, transparent 100%);
+  -webkit-mask-image:
+    radial-gradient(ellipse 90% 80% at 50% 50%, #000 60%, transparent 100%);
+  opacity: 0.95;
+}
+
+/* warm radial bloom behind the blueprint (cyan, since we're keeping the blue palette) */
+.bg-bloom {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 65%, rgba(43, 212, 255, 0.20) 0%, rgba(43, 212, 255, 0.08) 35%, transparent 70%),
+    radial-gradient(ellipse 30% 25% at 50% 70%, rgba(124, 255, 203, 0.10) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* (the constant blueprint pulse was removed — it was forcing repaints on every frame.
+   The animated tracers + sigil flare carry the "alive" feel now.) */
+
+/* Pause every background animation while the rip modal is open — the user can't see
+   the background through the opaque modal anyway, so animating it just steals paint
+   cycles from the rip experience. Same for the HUD frame and the boot HUD blink. */
+body.modal-open .laser-trace line,
+body.modal-open .sigil-flare,
+body.modal-open .scanlines,
+body.modal-open .hud-boot {
+  animation-play-state: paused !important;
+}
+
+/* ===== Animated laser tracers — pulses of light running outer → sigil ===== */
+.laser-trace line {
+  /* tiny "head" of light + huge gap so only one bright pulse appears per line at a time */
+  stroke-dasharray: 7 200;
+  /* single soft glow — keeps the laser feel without compounding paint cost per frame */
+  filter: drop-shadow(0 0 6px rgba(43, 212, 255, 0.85));
+  animation: laser-trace 6s linear infinite;
+  /* hint the browser to optimize repaints for the dash animation */
+  will-change: stroke-dashoffset;
+}
+
+/* stagger so the pulses cascade in but stay smooth at a slow cadence */
+.laser-trace .lt-1 { animation-delay: 0s;    animation-duration: 5.4s; }
+.laser-trace .lt-2 { animation-delay: 0.4s;  animation-duration: 6s;   }
+.laser-trace .lt-3 { animation-delay: 0.4s;  animation-duration: 6s;   }
+.laser-trace .lt-4 { animation-delay: 1.6s;  animation-duration: 4s;   }
+.laser-trace .lt-5 { animation-delay: 1.8s;  animation-duration: 4.4s; }
+.laser-trace .lt-6 { animation-delay: 1.8s;  animation-duration: 4.4s; }
+
+@keyframes laser-trace {
+  0%   { stroke-dashoffset: 7;    }   /* head sits just before the line start (outer end) */
+  88%  { stroke-dashoffset: -100; }   /* head reaches the sigil (inner end) */
+  100% { stroke-dashoffset: -107; }   /* head exits, brief pause before loop */
+}
+
+/* sigil flare: ring brightens + scales when the lasers converge */
+.sigil-flare {
+  transform-box: fill-box;
+  transform-origin: center;
+  /* single soft glow on the flare ring */
+  filter: drop-shadow(0 0 8px rgba(43, 212, 255, 0.7));
+  animation: sigil-flare 6s ease-out infinite;
+  animation-delay: 4.5s; /* fire near the end of the cycle when the heads arrive */
+  will-change: transform, opacity;
+}
+
+@keyframes sigil-flare {
+  0%, 70%  { opacity: 0; transform: scale(1); }
+  74%      { opacity: 1; transform: scale(1); }
+  100%     { opacity: 0; transform: scale(2.6); }
+}
+
+/* HUD frame chrome — corner brackets, side ticks, terminal hud text */
+.frame-hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.hud-bracket {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--neon);
+  box-shadow: 0 0 10px rgba(43, 212, 255, 0.45);
+}
+.hud-bracket.tl { top: 14px; left: 14px;    border-right: 0; border-bottom: 0; }
+.hud-bracket.tr { top: 14px; right: 14px;   border-left: 0;  border-bottom: 0; }
+.hud-bracket.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
+.hud-bracket.br { bottom: 14px; right: 14px;border-left: 0;  border-top: 0; }
+
+.hud-tick {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 56px;
+  border: 2px solid var(--neon);
+  box-shadow: 0 0 8px rgba(43, 212, 255, 0.45);
+}
+.hud-tick.l { left: 14px;  border-right: 0; }
+.hud-tick.r { right: 14px; border-left: 0; }
+
+.hud-boot {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--neon);
+  text-shadow: 0 0 8px rgba(43, 212, 255, 0.6);
+  pointer-events: none;
+  z-index: 30;
+  white-space: nowrap;
+  opacity: 0.8;
+  animation: hud-blink 2s steps(2, end) infinite;
+}
+.hud-boot::before { content: '['; opacity: 0.6; margin-right: 4px; }
+.hud-boot::after  { content: ']'; opacity: 0.6; margin-left: 4px; }
+
+@keyframes hud-blink {
+  0%, 80%  { opacity: 0.85; }
+  85%, 95% { opacity: 0.4;  }
+}
+
+@media (max-width: 700px) {
+  .hud-tick { display: none; }
+  .hud-bracket { width: 20px; height: 20px; }
+  .hud-boot { font-size: 8px; bottom: 8px; }
 }
 
 .scanlines {
@@ -600,7 +708,10 @@ h1, h2, h3, .pixel {
   position: relative;
   margin-bottom: 32px;
   transform-style: preserve-3d;
-  animation: pack-idle 2.4s ease-in-out infinite;
+  animation: pack-idle 3.2s ease-in-out infinite;
+  /* promote to its own compositor layer so the 3D rotation runs on the GPU */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 @keyframes pack-idle {
@@ -634,10 +745,11 @@ h1, h2, h3, .pixel {
   text-shadow: 3px 3px 0 #000;
   font-size: 20px;
   padding: 20px;
+  /* shrunk the outer glow from 60px → 24px to keep the pack idle rotation smooth */
   box-shadow:
     inset 0 0 0 2px rgba(255,255,255,0.2),
     12px 12px 0 #000,
-    0 0 60px rgba(43, 212, 255, 0.45);
+    0 0 24px rgba(43, 212, 255, 0.45);
   overflow: hidden;
 }
 
@@ -693,9 +805,11 @@ h1, h2, h3, .pixel {
 }
 
 @keyframes pack-tear-anim {
-  0%   { clip-path: inset(0 0 0 0); transform: scale(1); }
+  /* dropped filter:blur from the final frame — blurring a transforming element forces
+     a full re-rasterization every frame and was the main reason the tear felt choppy */
+  0%   { clip-path: inset(0 0 0 0);    transform: scale(1);    }
   40%  { clip-path: inset(28px 0 0 0); transform: scale(1.05); }
-  100% { clip-path: inset(28px 0 0 0); transform: scale(1.4); opacity: 0; filter: blur(4px); }
+  100% { clip-path: inset(28px 0 0 0); transform: scale(1.4);  opacity: 0; }
 }
 
 .rip-btn {
@@ -773,8 +887,16 @@ h1, h2, h3, .pixel {
   border-radius: 4px;
   cursor: pointer;
   transform-style: preserve-3d;
-  transition: transform 0.5s steps(8, end);
+  /* smoother flip — was steps(8) which was choppy, now a continuous easing */
+  transition: transform 0.55s cubic-bezier(0.4, 0.0, 0.2, 1);
   animation: card-in 0.4s steps(4, end);
+  /* GPU-promote the flipping card */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.card-side {
+  will-change: transform;
 }
 
 @keyframes card-in {
@@ -789,9 +911,9 @@ h1, h2, h3, .pixel {
   inset: 0;
   backface-visibility: hidden;
   border: 4px solid #000;
+  /* trimmed the inset stack — outer 10px hard shadow only, the border + outline already give the framed look */
   box-shadow:
     inset 0 0 0 2px #fff,
-    inset 0 0 0 4px #000,
     10px 10px 0 #000;
   overflow: hidden;
 }
@@ -1997,46 +2119,193 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   50%      { transform: translate(0, -3px); filter: brightness(1.08); }
 }
 
+/* The pack art now displays the real product photo of each sealed booster.
+   Vertical 5:7 ratio so packs look proportionally correct; object-fit: contain
+   preserves each photo's aspect ratio without distortion. */
 .rp-art {
   position: relative;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 5 / 7;
   background:
-    linear-gradient(135deg, var(--accent) 0%, #061222 100%);
+    radial-gradient(ellipse 110% 80% at 50% 35%,
+      color-mix(in srgb, var(--accent) 60%, black 40%) 0%,
+      color-mix(in srgb, var(--accent) 30%, black 70%) 65%,
+      #050810 100%);
+  overflow: hidden;
+  border-bottom: 3px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  overflow: hidden;
-  border-bottom: 3px solid #000;
+  padding: 14px;
 }
 
-.rp-art img {
-  max-width: 80%;
-  max-height: 80%;
+.rp-photo {
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.5));
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.55));
   z-index: 2;
+  position: relative;
 }
 
+/* a soft moving sheen so the photo still feels like a glossy product shot */
+.rp-photo-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255,255,255,0.10) 52%,
+    transparent 64%,
+    transparent 100%);
+  pointer-events: none;
+  z-index: 3;
+  mix-blend-mode: screen;
+}
+
+.rp-pack-shell {
+  position: absolute;
+  inset: 0;
+  display: block;
+  /* base wrapper color from the pack accent + a darker bottom for depth */
+  background:
+    radial-gradient(ellipse 110% 70% at 50% 35%,
+      color-mix(in srgb, var(--accent) 75%, white 0%) 0%,
+      color-mix(in srgb, var(--accent) 80%, black 25%) 60%,
+      #050810 100%);
+}
+
+/* perforation strip at the very top — that little "tear here" zigzag */
+.rp-perforation {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 22px;
+  background:
+    /* the dotted tear zigzag */
+    repeating-linear-gradient(
+      90deg,
+      #000 0, #000 4px,
+      transparent 4px, transparent 8px),
+    /* perf band background */
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--accent) 85%, white 15%) 0%,
+      color-mix(in srgb, var(--accent) 90%, black 10%) 100%);
+  border-bottom: 2px solid rgba(0,0,0,0.6);
+  z-index: 4;
+}
+
+/* white POKÉMON CARD GAME branding band right under the perforation */
+.rp-brand {
+  position: absolute;
+  top: 26px;
+  left: 6%;
+  right: 6%;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #1a1a1a;
+  background: linear-gradient(180deg, #fff 0%, #e6e6ec 100%);
+  padding: 5px 0 4px;
+  border-top: 1px solid rgba(0,0,0,0.35);
+  border-bottom: 1px solid rgba(0,0,0,0.35);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset;
+  z-index: 4;
+}
+
+/* hero pokémon art peeking from the top half — cropped to show just the illustration,
+   not the full card stats. object-position pins to the top so we keep the artwork. */
+.rp-feature {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  width: 72%;
+  height: 48%;
+  object-fit: cover;
+  object-position: center 22%; /* show the top illustration of the card, hide the stats */
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.7)) saturate(1.05);
+  z-index: 2;
+  opacity: 0.95;
+  border-radius: 4px;
+}
+
+/* set logo sits front and center, big and proud (this is what's printed on a real booster) */
+.rp-logo {
+  position: absolute;
+  top: 62%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 86%;
+  max-height: 28%;
+  object-fit: contain;
+  filter:
+    drop-shadow(2px 2px 0 #000)
+    drop-shadow(0 4px 14px rgba(0,0,0,0.6));
+  z-index: 3;
+}
+
+/* Mylar shine — diagonal stripes + a soft sweeping highlight */
 .rp-shine {
   position: absolute;
   inset: 0;
   background:
+    /* diagonal hatching for plastic-foil texture */
     repeating-linear-gradient(
-      45deg,
-      rgba(255,255,255,0.06) 0,
-      rgba(255,255,255,0.06) 4px,
-      transparent 4px,
-      transparent 12px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(0,0,0,0) 0,
-      rgba(0,0,0,0) 18px,
-      rgba(0,0,0,0.2) 18px,
-      rgba(0,0,0,0.2) 22px
-    );
+      135deg,
+      rgba(255,255,255,0.07) 0,
+      rgba(255,255,255,0.07) 2px,
+      transparent 2px,
+      transparent 6px),
+    /* big diagonal sheen sweep across the pack */
+    linear-gradient(
+      120deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(255,255,255,0.18) 50%,
+      transparent 65%,
+      transparent 100%);
   pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: screen;
+}
+
+/* a brighter highlight streak running down the pack — the shiny "spine" */
+.rp-streak {
+  position: absolute;
+  top: 26px;
+  bottom: 28px;
+  left: 8%;
+  width: 6px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.45) 30%,
+    rgba(255,255,255,0.15) 60%,
+    rgba(255,255,255,0) 100%);
+  filter: blur(2px);
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0.7;
+}
+
+/* set name banner across the bottom of the pack */
+.rp-band {
+  position: absolute;
+  bottom: 10px;
+  left: 6%;
+  right: 6%;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.6);
+  background: linear-gradient(180deg,
+    rgba(0,0,0,0.55) 0%,
+    rgba(0,0,0,0.85) 100%);
+  padding: 5px 6px 4px;
+  border-top: 1px solid rgba(255,255,255,0.18);
+  z-index: 4;
 }
 
 .rp-meta { padding: 16px; display: flex; flex-direction: column; gap: 6px; }

@@ -88,58 +88,57 @@ const BURN_RATE = 1000; // $RIP burned per $1 USD market value
 
 const PACKS = [
   // ============ VINTAGE WOTC ERA (1999-2002) ============
-  // extremely limited inventory · authenticated by BBCE
   {
-    id: 'base1-1ed', logoSet: 'base1',
+    id: 'base1-1ed', logoSet: 'base1', featuredCard: { set: 'base1', num: '4' },
     name: 'Base Set 1st Edition',  nameJp: '初版ベースセット',
     year: '1999', era: 'vintage',  tag: 'WOTC · 1ST ED · BBCE',
     marketUSD: 9500,  stock: 1, accent: '#ff5252',
     pull: { common: 5, uncommon: 3, rare: 3.0, holo: 2.0, ultra: 0.7, secret: 0.2 },
   },
   {
-    id: 'base1', logoSet: 'base1',
+    id: 'base1', logoSet: 'base1', featuredCard: { set: 'base1', num: '4' },
     name: 'Base Set Shadowless',   nameJp: 'ベースセット',
     year: '1999', era: 'vintage',  tag: 'WOTC · SHADOWLESS · BBCE',
     marketUSD: 1200, stock: 2, accent: '#ff8a3b',
     pull: { common: 5, uncommon: 3, rare: 2.6, holo: 1.6, ultra: 0.55, secret: 0.16 },
   },
   {
-    id: 'base6', logoSet: 'base6',
+    id: 'base6', logoSet: 'base6', featuredCard: { set: 'base6', num: '3' },
     name: 'Legendary Collection',  nameJp: 'レジェンダリーコレクション',
     year: '2002', era: 'vintage',  tag: 'WOTC · REVERSE HOLO ERA',
     marketUSD: 625,  stock: 1, accent: '#c46bff',
     pull: { common: 5, uncommon: 3, rare: 2.4, holo: 1.4, ultra: 0.45, secret: 0.13 },
   },
   {
-    id: 'neo4', logoSet: 'neo4',
+    id: 'neo4', logoSet: 'neo4', featuredCard: { set: 'neo4', num: '4' },
     name: 'Neo Destiny',           nameJp: 'ネオデスティニー',
     year: '2002', era: 'vintage',  tag: 'WOTC · DARK POKÉMON',
     marketUSD: 585,  stock: 1, accent: '#9c5dff',
     pull: { common: 5, uncommon: 3, rare: 2.3, holo: 1.4, ultra: 0.42, secret: 0.12 },
   },
   {
-    id: 'neo1', logoSet: 'neo1',
+    id: 'neo1', logoSet: 'neo1', featuredCard: { set: 'neo1', num: '9' },
     name: 'Neo Genesis',           nameJp: 'ネオジェネシス',
     year: '2000', era: 'vintage',  tag: 'WOTC · LUGIA · TYPHLOSION',
     marketUSD: 495,  stock: 2, accent: '#7cffcb',
     pull: { common: 5, uncommon: 3, rare: 2.2, holo: 1.3, ultra: 0.4, secret: 0.11 },
   },
   {
-    id: 'base5', logoSet: 'base5',
+    id: 'base5', logoSet: 'base5', featuredCard: { set: 'base5', num: '4' },
     name: 'Team Rocket',           nameJp: 'チームロケット',
     year: '2000', era: 'vintage',  tag: 'WOTC · DARK CHARIZARD ERA',
     marketUSD: 410,  stock: 3, accent: '#ff5fa2',
     pull: { common: 5, uncommon: 3, rare: 2.1, holo: 1.2, ultra: 0.35, secret: 0.10 },
   },
   {
-    id: 'base2', logoSet: 'base2',
+    id: 'base2', logoSet: 'base2', featuredCard: { set: 'base2', num: '4' },
     name: 'Jungle 1st Edition',    nameJp: 'ジャングル',
     year: '1999', era: 'vintage',  tag: 'WOTC · 1ST ED',
     marketUSD: 385,  stock: 4, accent: '#4ee06a',
     pull: { common: 5, uncommon: 3, rare: 2.0, holo: 1.1, ultra: 0.32, secret: 0.09 },
   },
   {
-    id: 'base3', logoSet: 'base3',
+    id: 'base3', logoSet: 'base3', featuredCard: { set: 'base3', num: '1' },
     name: 'Fossil Unlimited',      nameJp: '化石',
     year: '1999', era: 'vintage',  tag: 'WOTC · AERODACTYL ERA',
     marketUSD: 295,  stock: 4, accent: '#b08858',
@@ -148,14 +147,14 @@ const PACKS = [
 
   // ============ BOUTIQUE / SPECIAL (2019-2021) ============
   {
-    id: 'sm115', logoSet: 'sm115',
+    id: 'sm115', logoSet: 'sm115', featuredCard: { set: 'sm115', num: '9' },
     name: 'Hidden Fates',          nameJp: 'ハイドゥンフェイト',
     year: '2019', era: 'boutique', tag: 'SHINY VAULT · LIMITED REPRINT',
     marketUSD: 45,   stock: 8, accent: '#2bd4ff',
     pull: { common: 4, uncommon: 3, rare: 2.0, holo: 0.9, ultra: 0.30, secret: 0.09 },
   },
   {
-    id: 'swsh35', logoSet: 'swsh35',
+    id: 'swsh35', logoSet: 'swsh35', featuredCard: { set: 'swsh35', num: '74' },
     name: "Champion's Path",       nameJp: 'チャンピオンズパス',
     year: '2020', era: 'boutique', tag: 'CHARIZARD VMAX · UK EXCLUSIVE',
     marketUSD: 50,   stock: 6, accent: '#ffd35a',
@@ -164,42 +163,42 @@ const PACKS = [
 
   // ============ CURRENT HOT (2023-2025) ============
   {
-    id: 'sv8pt5', logoSet: 'sv8pt5',
+    id: 'sv8pt5', logoSet: 'sv8pt5', featuredCard: { set: 'sv8pt5', num: '156' },
     name: 'Prismatic Evolutions',  nameJp: 'プリズマティックエボリューション',
     year: '2025', era: 'modern',   tag: 'EEVEE EX · HOT',
     marketUSD: 25,   stock: 12, accent: '#ff5fa2',
     pull: { common: 4, uncommon: 3, rare: 1.8, holo: 0.8, ultra: 0.25, secret: 0.08 },
   },
   {
-    id: 'sv3pt5', logoSet: 'sv3pt5',
+    id: 'sv3pt5', logoSet: 'sv3pt5', featuredCard: { set: 'sv3pt5', num: '199' },
     name: 'Pokémon 151',           nameJp: 'ポケモンカード151',
     year: '2023', era: 'modern',   tag: 'JAPAN · KANTO 151',
     marketUSD: 10,   stock: 47, accent: '#ff5252',
     pull: { common: 5, uncommon: 3, rare: 1.5, holo: 0.55, ultra: 0.15, secret: 0.04 },
   },
   {
-    id: 'sv4pt5', logoSet: 'sv4pt5',
+    id: 'sv4pt5', logoSet: 'sv4pt5', featuredCard: { set: 'sv4pt5', num: '233' },
     name: 'Paldean Fates',         nameJp: 'シャイニートレジャーex',
     year: '2024', era: 'modern',   tag: 'JAPAN · SHINY EX',
     marketUSD: 7,    stock: 23, accent: '#ffd35a',
     pull: { common: 4, uncommon: 3, rare: 1.6, holo: 0.7, ultra: 0.22, secret: 0.06 },
   },
   {
-    id: 'sv6pt5', logoSet: 'sv6pt5',
+    id: 'sv6pt5', logoSet: 'sv6pt5', featuredCard: { set: 'sv6pt5', num: '24' },
     name: 'Shrouded Fable',        nameJp: 'ナイトワンダラー',
     year: '2024', era: 'modern',   tag: 'JAPAN · PECHARUNT',
     marketUSD: 8,    stock: 31, accent: '#c46bff',
     pull: { common: 5, uncommon: 3, rare: 1.5, holo: 0.55, ultra: 0.15, secret: 0.04 },
   },
   {
-    id: 'sv7', logoSet: 'sv7',
+    id: 'sv7', logoSet: 'sv7', featuredCard: { set: 'sv7', num: '128' },
     name: 'Stellar Crown',         nameJp: 'ステラミラクル',
     year: '2024', era: 'modern',   tag: 'JAPAN · TERAPAGOS',
     marketUSD: 5,    stock: 19, accent: '#7cffcb',
     pull: { common: 5, uncommon: 3, rare: 1.5, holo: 0.55, ultra: 0.15, secret: 0.04 },
   },
   {
-    id: 'sv8', logoSet: 'sv8',
+    id: 'sv8', logoSet: 'sv8', featuredCard: { set: 'sv8', num: '238' },
     name: 'Surging Sparks',        nameJp: 'バトルパートナーズ',
     year: '2024', era: 'modern',   tag: 'JAPAN · PIKACHU EX',
     marketUSD: 6,    stock: 58, accent: '#ffe14a',
@@ -207,10 +206,20 @@ const PACKS = [
   },
 ];
 
-// derive burn from market price
+// derive burn from market price + attach the user-provided pack photo path
+const PACK_IMG_EXT = {
+  'base1-1ed': 'jpg', 'base1': 'jpg', 'base2': 'jpg', 'base3': 'jpg',
+  'base5': 'jpg', 'base6': 'jpg',
+  'neo1': 'webp', 'neo4': 'webp',
+  'sm115': 'jpg', 'swsh35': 'avif',
+  'sv3pt5': 'jpg', 'sv4pt5': 'webp', 'sv6pt5': 'webp',
+  'sv7': 'jpg', 'sv8': 'webp', 'sv8pt5': 'jpg',
+};
 PACKS.forEach(p => {
   p.burn = p.marketUSD * BURN_RATE;
   p.sol  = 0.05;
+  const ext = PACK_IMG_EXT[p.id];
+  if (ext) p.packImg = `img/pack-${p.id}.${ext}`;
 });
 
 // ---------- HERO CARDS (12 real cards w/ stock-left badges) ----------
@@ -364,8 +373,10 @@ function renderRealPackGrid(filter = 'all') {
       <div class="rp-era-tag">${eraLabel}</div>
       ${isLastOne ? '<div class="rp-fire">▶ LAST ONE</div>' : ''}
       <div class="rp-art">
-        <img src="${setLogo(p.logoSet)}" alt="${p.name} logo" loading="lazy" onerror="this.style.opacity=0.15" />
-        <div class="rp-shine"></div>
+        <!-- real product photo of the sealed pack -->
+        <img class="rp-photo" src="${p.packImg}"
+             alt="${p.name} sealed booster pack" loading="lazy" />
+        <div class="rp-photo-shine"></div>
         <div class="rp-year">${p.year}</div>
       </div>
       <div class="rp-meta">

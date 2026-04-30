@@ -16,6 +16,91 @@
   <div class="scanlines"></div>
   <div class="grid-bg"></div>
 
+  <!-- argus-style central blueprint: vertical line + 2 diagonals + diamond sigil -->
+  <div class="bg-blueprint" aria-hidden="true">
+    <div class="bg-bloom"></div>
+    <svg class="blueprint-svg" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="laser-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="b1"/>
+          <feGaussianBlur stdDeviation="6" in="SourceGraphic" result="b2"/>
+          <feMerge>
+            <feMergeNode in="b2"/>
+            <feMergeNode in="b1"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <g stroke="rgba(43, 212, 255, 0.55)" fill="none" stroke-width="1.4" filter="url(#laser-glow)">
+        <!-- vertical conduit from top center down to the sigil -->
+        <line x1="960" y1="0" x2="960" y2="640"/>
+        <!-- two laser diagonals from the apex out to the bottom corners -->
+        <line x1="960" y1="120" x2="0"    y2="1200"/>
+        <line x1="960" y1="120" x2="1920" y2="1200"/>
+        <!-- bottom continuation lines from the sigil downward -->
+        <line x1="960" y1="900" x2="960" y2="1200"/>
+        <line x1="700" y1="770" x2="500" y2="1200"/>
+        <line x1="1220" y1="770" x2="1420" y2="1200"/>
+      </g>
+
+      <!-- central diamond sigil at (960, 770) -->
+      <g stroke="rgba(43, 212, 255, 0.7)" fill="none" stroke-width="1.4" filter="url(#laser-glow)">
+        <!-- big diamond -->
+        <polygon points="960,540 1230,770 960,1000 690,770"/>
+        <!-- horizontal cross-axis through the diamond -->
+        <line x1="690" y1="770" x2="1230" y2="770"/>
+        <!-- vertical cross-axis -->
+        <line x1="960" y1="540" x2="960" y2="1000"/>
+        <!-- inner ring -->
+        <circle cx="960" cy="770" r="42"/>
+        <!-- inner small dots at cardinal points -->
+        <circle cx="960" cy="540" r="6"/>
+        <circle cx="690" cy="770" r="6"/>
+        <circle cx="1230" cy="770" r="6"/>
+        <circle cx="960" cy="1000" r="6"/>
+        <!-- center dot -->
+        <circle cx="960" cy="770" r="4" fill="rgba(43, 212, 255, 0.8)"/>
+        <!-- inner inscribed square -->
+        <rect x="850" y="660" width="220" height="220"/>
+      </g>
+
+      <!-- subtle tick marks along the laser diagonals -->
+      <g stroke="rgba(43, 212, 255, 0.35)" stroke-width="1">
+        <line x1="380" y1="900" x2="395" y2="920"/>
+        <line x1="540" y1="700" x2="555" y2="720"/>
+        <line x1="700" y1="500" x2="715" y2="520"/>
+        <line x1="1525" y1="900" x2="1540" y2="920"/>
+        <line x1="1365" y1="700" x2="1380" y2="720"/>
+        <line x1="1205" y1="500" x2="1220" y2="520"/>
+      </g>
+
+      <!-- Animated laser tracers: bright pulses of light traveling from outer ends inward to the central sigil. Lines are drawn outer→inner so the dash slides toward the sigil. NO SVG filter here — the CSS drop-shadow handles the glow without re-blurring on every frame. -->
+      <g class="laser-trace" stroke="rgba(124, 255, 203, 1)" fill="none" stroke-width="3" stroke-linecap="round">
+        <line class="lt-1" x1="960"  y1="0"    x2="960"  y2="640"  pathLength="100"/>
+        <line class="lt-2" x1="0"    y1="1200" x2="960"  y2="120"  pathLength="100"/>
+        <line class="lt-3" x1="1920" y1="1200" x2="960"  y2="120"  pathLength="100"/>
+        <line class="lt-4" x1="960"  y1="1200" x2="960"  y2="900"  pathLength="100"/>
+        <line class="lt-5" x1="500"  y1="1200" x2="700"  y2="770"  pathLength="100"/>
+        <line class="lt-6" x1="1420" y1="1200" x2="1220" y2="770"  pathLength="100"/>
+      </g>
+
+      <!-- sigil flare: brightens when the lasers arrive -->
+      <circle class="sigil-flare" cx="960" cy="770" r="42" fill="rgba(124, 255, 203, 0)" stroke="rgba(124, 255, 203, 1)" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <!-- HUD chrome: corner brackets + side ticks + boot HUD text (argus-style) -->
+  <div class="frame-hud" aria-hidden="true">
+    <span class="hud-bracket tl"></span>
+    <span class="hud-bracket tr"></span>
+    <span class="hud-bracket bl"></span>
+    <span class="hud-bracket br"></span>
+    <span class="hud-tick l"></span>
+    <span class="hud-tick r"></span>
+  </div>
+  <div class="hud-boot" aria-hidden="true">BOOT_OK · PACKRIP · v0.0.1</div>
+
   <!-- ============== TOP NAV ============== -->
   <nav class="topnav">
     <a class="nav-logo" href="#top">
@@ -518,6 +603,6 @@
 
   <div class="flash" id="flash"></div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>
