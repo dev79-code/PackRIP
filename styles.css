@@ -51,6 +51,9 @@ html, body {
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  /* opt-in snap so each landing section parks near the viewport when scrolled to,
+     but don't lock it (proximity, not mandatory) — feels modern without being janky */
+  scroll-snap-type: y proximity;
 }
 
 body {
@@ -62,8 +65,7 @@ html.modal-open, body.modal-open { overflow: hidden; }
 
 /* ============== BACKGROUND FX ============== */
 
-/* Argus-style background:
-   pure black void · faint dot grid · CRT vignette glow · center blueprint sigil */
+/* Tiled "+" cross-grid background — engineering-blueprint look in cyan. */
 .grid-bg {
   position: fixed;
   inset: 0;
@@ -71,11 +73,11 @@ html.modal-open, body.modal-open { overflow: hidden; }
   pointer-events: none;
   overflow: hidden;
   background-color: #04060d;
-  /* faint dot grid — barely visible, gives texture without competing */
   background-image:
-    radial-gradient(circle, rgba(232, 243, 255, 0.045) 1px, transparent 1px);
-  background-size: 28px 28px;
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><g stroke='%232bd4ff' stroke-width='1' stroke-linecap='round' opacity='0.32'><line x1='20' y1='16.5' x2='20' y2='23.5'/><line x1='16.5' y1='20' x2='23.5' y2='20'/></g></svg>");
+  background-size: 40px 40px;
   background-position: 0 0;
+  transform: translateZ(0);
 }
 
 /* CRT-bezel vignette — soft cyan/pink glow on the perimeter, dark void in the middle */
@@ -90,13 +92,16 @@ html.modal-open, body.modal-open { overflow: hidden; }
   mix-blend-mode: screen;
 }
 
-/* SVG-based blueprint: vertical conduit + 2 diagonals + diamond sigil — matches argus.gg geometry */
+/* SVG-based blueprint: vertical conduit + 2 diagonals + diamond sigil — matches argus.gg geometry.
+   Blurred slightly so the laser geometry reads as atmospheric depth, not a foreground UI element. */
 .bg-blueprint {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  filter: blur(3px);
+  transform: translateZ(0);
 }
 
 .blueprint-svg {
@@ -104,7 +109,6 @@ html.modal-open, body.modal-open { overflow: hidden; }
   inset: 0;
   width: 100%;
   height: 100%;
-  /* fade slightly at the edges so the lasers feel infinite */
   mask-image:
     radial-gradient(ellipse 90% 80% at 50% 50%, #000 60%, transparent 100%);
   -webkit-mask-image:
@@ -112,7 +116,6 @@ html.modal-open, body.modal-open { overflow: hidden; }
   opacity: 0.95;
 }
 
-/* warm radial bloom behind the blueprint (cyan, since we're keeping the blue palette) */
 .bg-bloom {
   position: absolute;
   inset: 0;
@@ -122,12 +125,9 @@ html.modal-open, body.modal-open { overflow: hidden; }
   pointer-events: none;
 }
 
-/* (the constant blueprint pulse was removed — it was forcing repaints on every frame.
-   The animated tracers + sigil flare carry the "alive" feel now.) */
-
 /* Pause every background animation while the rip modal is open — the user can't see
    the background through the opaque modal anyway, so animating it just steals paint
-   cycles from the rip experience. Same for the HUD frame and the boot HUD blink. */
+   cycles from the rip experience. */
 body.modal-open .laser-trace line,
 body.modal-open .sigil-flare,
 body.modal-open .scanlines,
@@ -137,16 +137,12 @@ body.modal-open .hud-boot {
 
 /* ===== Animated laser tracers — pulses of light running outer → sigil ===== */
 .laser-trace line {
-  /* tiny "head" of light + huge gap so only one bright pulse appears per line at a time */
   stroke-dasharray: 7 200;
-  /* single soft glow — keeps the laser feel without compounding paint cost per frame */
   filter: drop-shadow(0 0 6px rgba(43, 212, 255, 0.85));
   animation: laser-trace 6s linear infinite;
-  /* hint the browser to optimize repaints for the dash animation */
   will-change: stroke-dashoffset;
 }
 
-/* stagger so the pulses cascade in but stay smooth at a slow cadence */
 .laser-trace .lt-1 { animation-delay: 0s;    animation-duration: 5.4s; }
 .laser-trace .lt-2 { animation-delay: 0.4s;  animation-duration: 6s;   }
 .laser-trace .lt-3 { animation-delay: 0.4s;  animation-duration: 6s;   }
@@ -155,19 +151,17 @@ body.modal-open .hud-boot {
 .laser-trace .lt-6 { animation-delay: 1.8s;  animation-duration: 4.4s; }
 
 @keyframes laser-trace {
-  0%   { stroke-dashoffset: 7;    }   /* head sits just before the line start (outer end) */
-  88%  { stroke-dashoffset: -100; }   /* head reaches the sigil (inner end) */
-  100% { stroke-dashoffset: -107; }   /* head exits, brief pause before loop */
+  0%   { stroke-dashoffset: 7;    }
+  88%  { stroke-dashoffset: -100; }
+  100% { stroke-dashoffset: -107; }
 }
 
-/* sigil flare: ring brightens + scales when the lasers converge */
 .sigil-flare {
   transform-box: fill-box;
   transform-origin: center;
-  /* single soft glow on the flare ring */
   filter: drop-shadow(0 0 8px rgba(43, 212, 255, 0.7));
   animation: sigil-flare 6s ease-out infinite;
-  animation-delay: 4.5s; /* fire near the end of the cycle when the heads arrive */
+  animation-delay: 4.5s;
   will-change: transform, opacity;
 }
 
@@ -192,8 +186,9 @@ body.modal-open .hud-boot {
   border: 2px solid var(--neon);
   box-shadow: 0 0 10px rgba(43, 212, 255, 0.45);
 }
-.hud-bracket.tl { top: 14px; left: 14px;    border-right: 0; border-bottom: 0; }
-.hud-bracket.tr { top: 14px; right: 14px;   border-left: 0;  border-bottom: 0; }
+/* top brackets sit BELOW the floating nav so they don't collide with the pills */
+.hud-bracket.tl { top: 84px; left: 14px;    border-right: 0; border-bottom: 0; }
+.hud-bracket.tr { top: 84px; right: 14px;   border-left: 0;  border-bottom: 0; }
 .hud-bracket.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
 .hud-bracket.br { bottom: 14px; right: 14px;border-left: 0;  border-top: 0; }
 
@@ -520,7 +515,7 @@ h1, h2, h3, .pixel {
   justify-content: center;
   margin-bottom: 24px;
   z-index: 2;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
 }
 
 .pack-card {
@@ -1230,7 +1225,7 @@ h1, h2, h3, .pixel {
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 14px;
   width: 100%;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   flex: 1;
   overflow-y: auto;
   padding: 12px 6px;
@@ -1268,46 +1263,61 @@ h1, h2, h3, .pixel {
    ====================  LANDING PAGE STYLES  =====================
    ================================================================ */
 
-/* ============== TOP NAV ============== */
+/* ============== TOP NAV — floating pills ============== */
 
 .topnav {
   position: sticky;
-  top: 0;
+  top: 16px;
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 28px;
-  padding: 16px 32px;
-  background: rgba(8, 11, 22, 0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 4px solid #000;
+  gap: 14px;
+  padding: 0 22px;
+  /* the bar itself is transparent — only the three pills inside have backdrop */
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: none;
+  box-shadow: none;
+  margin-bottom: -68px; /* prevent the sticky nav from pushing all content down */
+}
+
+/* shared pill styling for each floating section */
+.nav-logo,
+.nav-links,
+.nav-actions {
+  background: rgba(8, 11, 22, 0.78);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid rgba(43, 212, 255, 0.32);
+  border-radius: 999px;
   box-shadow:
-    0 4px 0 #000,
-    0 6px 24px rgba(43,212,255,0.25),
-    inset 0 -2px 0 rgba(43,212,255,0.4);
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .nav-logo {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 22px;
+  font-size: 18px;
   color: var(--neon);
   text-decoration: none;
-  text-shadow: 3px 3px 0 #000, 0 0 14px var(--neon);
+  text-shadow: 2px 2px 0 #000, 0 0 12px var(--neon);
   letter-spacing: 1px;
   flex-shrink: 0;
+  padding: 6px 18px 6px 6px;
 }
 
 .nav-logo-img {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 2px solid var(--neon);
-  box-shadow: 3px 3px 0 #000, 0 0 14px rgba(43,212,255,0.45);
+  box-shadow: 0 0 12px rgba(43,212,255,0.55);
   flex-shrink: 0;
   object-fit: cover;
   background: #000;
@@ -1324,12 +1334,22 @@ h1, h2, h3, .pixel {
   text-shadow: 3px 3px 0 #000, 0 0 14px var(--neon-3);
 }
 
+/* SVG wordmark next to the orb in the navbar (replaces the old PACK/RIP text) */
+.nav-logo-wordmark {
+  display: block;
+  height: 28px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(43, 212, 255, 0.35));
+  flex-shrink: 0;
+}
+
 .nav-links {
   list-style: none;
   display: flex;
-  gap: 4px;
+  gap: 2px;
   align-items: center;
   margin: 0;
+  padding: 5px;
 }
 
 .nav-links a {
@@ -1337,37 +1357,30 @@ h1, h2, h3, .pixel {
   color: var(--txt);
   text-decoration: none;
   font-family: 'Press Start 2P', monospace;
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 1px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: inline-block;
+  border-radius: 999px;
   transition: color 0.1s steps(2, end), background 0.1s steps(2, end);
   text-shadow: 1px 1px 0 #000;
 }
 .nav-links a:hover {
-  color: var(--neon);
-  background: rgba(43,212,255,0.08);
-  text-shadow: 1px 1px 0 #000, 0 0 10px var(--neon);
-}
-.nav-links a:hover::after {
-  content: '';
-  position: absolute;
-  bottom: 2px;
-  left: 14px;
-  right: 14px;
-  height: 3px;
+  color: #061222;
   background: var(--neon);
-  box-shadow: 0 0 8px var(--neon);
+  text-shadow: none;
+  box-shadow: 0 0 14px rgba(43,212,255,0.5);
 }
 
-.nav-cta { font-size: 13px; padding: 12px 16px; }
+.nav-cta { font-size: 11px; padding: 9px 14px; border-radius: 999px; }
 a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   flex-shrink: 0;
+  padding: 5px;
 }
 
 .nav-x {
@@ -1375,31 +1388,34 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   align-items: center;
   gap: 8px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--txt);
   text-decoration: none;
-  background: #000;
-  padding: 11px 14px;
-  border: 2px solid var(--txt-dim);
+  background: transparent;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
   letter-spacing: 1px;
-  box-shadow: 3px 3px 0 #000;
-  transition: all 0.1s steps(2, end);
+  transition: all 0.12s steps(2, end);
 }
 .nav-x svg { display: block; flex-shrink: 0; }
 .nav-x:hover {
-  color: #000;
+  color: #061222;
   background: #fff;
-  border-color: #fff;
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #000;
+  box-shadow: 0 0 14px rgba(255,255,255,0.45);
 }
 
 .nav-wallet {
-  font-size: 12px;
-  padding: 11px 14px;
+  font-size: 10px;
+  padding: 8px 12px !important;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  border-radius: 999px !important;
+  /* override the chunky pixel-button shadow stack on the .pixel-btn.ghost base */
+  box-shadow: none !important;
+  border: 1px solid rgba(232, 243, 255, 0.18) !important;
+  background: transparent !important;
 }
 .wallet-dot {
   width: 9px; height: 9px;
@@ -1409,9 +1425,10 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   flex-shrink: 0;
 }
 .nav-wallet.connected {
-  color: var(--neon-2);
+  color: var(--neon-2) !important;
   border-color: var(--neon-2) !important;
-  box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px transparent, inset 0 0 0 6px var(--neon-2), 4px 4px 0 #000 !important;
+  background: rgba(124, 255, 203, 0.08) !important;
+  box-shadow: 0 0 14px rgba(124, 255, 203, 0.3) !important;
 }
 .nav-wallet.connected .wallet-dot {
   background: var(--neon-2);
@@ -1419,30 +1436,172 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   animation: pulse 1.6s ease-in-out infinite;
 }
 
+/* the nav BUY $RIP button stays vibrant cyan but loses the chunky pixel offset shadow */
+.nav-cta.pixel-btn.primary {
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,0.4),
+    0 0 18px rgba(43,212,255,0.5) !important;
+}
+.nav-cta.pixel-btn.primary:hover {
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,0.6),
+    0 0 24px rgba(124,255,203,0.7) !important;
+  transform: translate(0, -1px);
+}
+
 @media (max-width: 1200px) {
   .nav-x-handle { display: none; }
-  .nav-x { padding: 11px 12px; }
+  .nav-x { padding: 8px 10px; }
 }
 @media (max-width: 1000px) {
   .nav-links { display: none; }
-  .topnav { padding: 14px 18px; gap: 12px; }
+  .topnav { padding: 0 16px; gap: 10px; }
 }
 @media (max-width: 600px) {
   .nav-wallet .wallet-label { display: none; }
-  .nav-wallet { padding: 11px 12px; }
-  .nav-logo { font-size: 18px; }
-  .nav-cta { font-size: 11px; padding: 10px 12px; }
+  .nav-wallet { padding: 8px 10px !important; }
+  .nav-logo { font-size: 14px; padding: 5px 14px 5px 5px; }
+  .nav-cta { font-size: 10px; padding: 8px 12px; }
 }
 @media (max-width: 420px) {
-  .topnav { padding: 12px 14px; gap: 8px; }
+  .topnav { padding: 0 12px; gap: 6px; top: 12px; margin-bottom: -64px; }
   .nav-x { display: none; }
-  .nav-logo { font-size: 16px; gap: 8px; }
-  .nav-logo-img { width: 36px; height: 36px; }
-  .nav-logo-text { display: none; }
-  .nav-cta { padding: 10px 10px; }
+  .nav-logo { font-size: 13px; gap: 8px; }
+  .nav-logo-img { width: 32px; height: 32px; }
+  .nav-logo-text,
+  .nav-logo-wordmark { display: none; }
+  .nav-cta { padding: 8px 10px; }
+}
+@media (max-width: 700px) {
+  .nav-logo-wordmark { height: 22px; }
 }
 
-/* ============== SECTIONS COMMON ============== */
+/* ============== SECTIONS AS PAGES ============== */
+
+/* every landing section behaves as a "page": fills the viewport at minimum and
+   parks at its top when scrolled to. Block-level sections also center their
+   content vertically via flex-column; .cam-section has its own grid layout
+   and uses align-content: center instead. */
+.hero,
+.cam-section,
+.rip-feature,
+.packs-section,
+.hits-section,
+.marketplace-section,
+.postrip-section,
+.how-section,
+.tokenomics-section,
+.owner-section,
+.shop-gallery-section {
+  min-height: 100vh;
+  scroll-snap-align: start;
+  scroll-margin-top: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+/* block sections vertically center their content inside the 100vh box */
+.rip-feature,
+.packs-section,
+.hits-section,
+.marketplace-section,
+.postrip-section,
+.how-section,
+.tokenomics-section,
+.owner-section,
+.shop-gallery-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* per-section background layer — each section gets a unique gradient mood
+   that sits below content but above the global blueprint backdrop. The bg
+   layer breaks out of the section's max-width constraint to span 100vw,
+   and is softly blurred for that depth-of-field bokeh feel. */
+.cam-section::before,
+.rip-feature::before,
+.packs-section::before,
+.hits-section::before,
+.marketplace-section::before,
+.postrip-section::before,
+.how-section::before,
+.tokenomics-section::before,
+.owner-section::before,
+.shop-gallery-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  margin-left: -50vw;
+  width: 100vw;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+/* CAM — deep cinema red */
+.cam-section::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 82, 82, 0.18) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(20, 4, 8, 0.6) 100%);
+}
+/* RIP feature — gold spotlight */
+.rip-feature::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(255, 211, 90, 0.18) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(34, 22, 4, 0.5) 100%);
+}
+/* PACK WALL — cyan tech grid wash */
+.packs-section::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(43, 212, 255, 0.18) 0%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgba(4, 12, 28, 0.7) 100%);
+}
+/* HITS — orange/amber sunset for the leaderboard */
+.hits-section::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 138, 59, 0.18) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(28, 12, 4, 0.6) 100%);
+}
+/* MARKETPLACE — emerald green */
+.marketplace-section::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 40%, rgba(78, 224, 106, 0.16) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(4, 22, 12, 0.6) 100%);
+}
+/* POST-RIP — teal */
+.postrip-section::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(124, 255, 203, 0.14) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(4, 22, 22, 0.55) 100%);
+}
+/* HOW — violet */
+.how-section::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 40%, rgba(196, 107, 255, 0.16) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(18, 4, 28, 0.6) 100%);
+}
+/* TOKENOMICS — burn red/orange */
+.tokenomics-section::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 40%, rgba(255, 82, 82, 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 30% at 50% 75%, rgba(255, 211, 90, 0.12) 0%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgba(28, 8, 4, 0.6) 100%);
+}
+/* OWNER — warm amber */
+.owner-section::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 40%, rgba(255, 95, 162, 0.14) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, rgba(22, 8, 18, 0.6) 100%);
+}
+/* GALLERY — deep navy */
+.shop-gallery-section::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(43, 90, 200, 0.14) 0%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgba(4, 8, 22, 0.7) 100%);
+}
 
 .section-head {
   text-align: center;
@@ -1453,7 +1612,8 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .section-h {
   font-family: 'Press Start 2P', monospace;
-  font-size: 22px;
+  /* fluid scale: small at 320px, capped at ~36px on 1600px+ monitors */
+  font-size: clamp(20px, 1.6vw + 8px, 36px);
   color: var(--neon);
   text-shadow: 3px 3px 0 #000, 0 0 16px rgba(43,212,255,0.5);
   letter-spacing: 2px;
@@ -1462,7 +1622,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .section-sub {
   color: var(--txt-dim);
-  font-size: 18px;
+  font-size: clamp(16px, 0.7vw + 14px, 22px);
   letter-spacing: 1px;
 }
 
@@ -1480,7 +1640,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 }
 
 .hero-content {
-  max-width: 720px;
+  max-width: clamp(720px, 60vw, 1100px);
   margin: 0 auto;
   text-align: center;
   z-index: 2;
@@ -1521,6 +1681,42 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   font-size: clamp(48px, 11vw, 110px);
 }
 
+/* SVG hero wordmark — replaces the old text-based PACK / RIP layout */
+.logo.logo-svg {
+  display: block;
+  margin: 0 auto 14px;
+  text-align: center;
+  /* override the bottom-shadow text shadows from the parent .logo */
+  text-shadow: none;
+  font-size: 0;
+  /* a soft glow halo behind the SVG so it sits on the dark void cleanly */
+  filter:
+    drop-shadow(0 0 24px rgba(43, 212, 255, 0.35))
+    drop-shadow(0 0 60px rgba(255, 95, 162, 0.20));
+}
+
+.logo-img {
+  display: block;
+  margin: 0 auto;
+  /* cap by both width AND height since the SVG is a square (1600×1600) and the
+     visible wordmark would dominate the hero if it scaled by viewport-width alone */
+  width: auto;
+  height: clamp(180px, 38vh, 360px);
+  max-width: min(94vw, 600px);
+  image-rendering: auto;
+  animation: logo-float 3.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0);    }
+  50%      { transform: translateY(-6px); }
+}
+
+@media (max-width: 700px) {
+  .logo-img { height: clamp(160px, 32vh, 280px); }
+}
+
 .tagline {
   font-size: 26px;
   color: var(--txt);
@@ -1547,7 +1743,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  max-width: 640px;
+  max-width: clamp(640px, 50vw, 1000px);
   margin: 0 auto;
 }
 
@@ -1670,10 +1866,11 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 24px;
-  max-width: 1200px;
+  max-width: min(94vw, 1600px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
+  align-content: center; /* vertically center the grid rows inside the 100vh page */
 }
 
 .cam-section .section-head {
@@ -1932,7 +2129,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 }
 
 .rip-feature-card {
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -2018,7 +2215,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .packs-section {
   padding: 80px 28px;
-  max-width: 1300px;
+  max-width: min(94vw, 1700px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -2388,6 +2585,203 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .rp-btn { margin-top: 10px; font-size: 12px; }
 
+/* OR divider between $RIP-burn payment and SOL all-in payment */
+.rp-divider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--txt-dim);
+  letter-spacing: 1px;
+  margin: 4px 0 2px;
+}
+.rp-divider::before, .rp-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(232,243,255,0.18);
+}
+
+.rp-solpay-row .rp-row-val { color: var(--neon-2); text-shadow: 0 0 8px rgba(124,255,203,0.4); }
+
+/* two side-by-side payment CTAs at the bottom of each pack card */
+.rp-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+.rp-btn-row .pixel-btn { font-size: 10px; padding: 10px 8px; margin: 0; }
+.rp-btn-sol { color: var(--neon-2); }
+
+/* mystery pack art — locked, ??? markings */
+.rp-mystery-art {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 50%, rgba(156, 93, 255, 0.35) 0%, rgba(13, 5, 35, 0.95) 70%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 6px, transparent 6px 16px);
+  z-index: 2;
+}
+.rp-q {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 96px;
+  color: #fff;
+  text-shadow:
+    4px 4px 0 #000,
+    0 0 24px rgba(156, 93, 255, 0.95),
+    0 0 48px rgba(156, 93, 255, 0.6);
+  animation: q-pulse 2s ease-in-out infinite;
+}
+@keyframes q-pulse {
+  0%, 100% { transform: scale(1);    }
+  50%      { transform: scale(1.06); }
+}
+.rp-mystery-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: var(--neon-3);
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 #000;
+  margin-top: 8px;
+}
+.rp-mystery-sub {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--txt-dim);
+  letter-spacing: 1.5px;
+}
+
+.real-pack.is-mystery {
+  box-shadow:
+    inset 0 0 0 2px var(--rare-holo),
+    inset 0 0 0 4px var(--accent),
+    inset 0 0 0 8px #000,
+    8px 8px 0 #000,
+    0 0 35px rgba(156, 93, 255, 0.4);
+  animation: mystery-shimmer 3s ease-in-out infinite;
+}
+@keyframes mystery-shimmer {
+  0%, 100% { box-shadow: inset 0 0 0 2px var(--rare-holo), inset 0 0 0 4px var(--accent), inset 0 0 0 8px #000, 8px 8px 0 #000, 0 0 35px rgba(156, 93, 255, 0.4); }
+  50%      { box-shadow: inset 0 0 0 2px var(--neon-2),    inset 0 0 0 4px var(--accent), inset 0 0 0 8px #000, 8px 8px 0 #000, 0 0 50px rgba(124, 255, 203, 0.5); }
+}
+
+.filter-chip.mystery-chip { color: var(--rare-holo); border-color: var(--rare-holo); }
+.filter-chip.mystery-chip.active { background: var(--rare-holo); border-color: var(--rare-holo); color: #fff; }
+
+/* per-card action buttons on the summary screen (KEEP / SELL / BURN FWD) */
+.card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  margin-top: 6px;
+}
+.ca-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 5px 2px;
+  background: rgba(0,0,0,0.5);
+  color: var(--txt);
+  border: 1px solid rgba(232,243,255,0.25);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.1s steps(2, end);
+}
+.ca-btn:hover { background: var(--neon); color: #061222; border-color: var(--neon); }
+.ca-btn.ca-sell:hover { background: var(--gold); border-color: var(--gold); color: #061222; }
+.ca-btn.ca-burn:hover { background: var(--hp-low); border-color: var(--hp-low); color: #fff; }
+
+.card-action-status {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  text-align: center;
+  margin-top: 4px;
+  height: 10px;
+  letter-spacing: 0.5px;
+  color: var(--neon-2);
+}
+
+/* lock the mini-card to dim the buttons + show the status once a choice is made */
+.mini-card.chose-keep .card-actions,
+.mini-card.chose-sell .card-actions,
+.mini-card.chose-burn .card-actions { opacity: 0.4; pointer-events: none; }
+.mini-card.chose-keep .card-action-status { color: var(--neon-2); }
+.mini-card.chose-sell .card-action-status { color: var(--gold); }
+.mini-card.chose-burn .card-action-status { color: var(--hp-low); }
+
+/* Marketplace section (coming soon) */
+.marketplace-section {
+  padding: 80px 28px;
+  max-width: min(94vw, 1500px);
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+.ms-soon {
+  display: inline-block;
+  background: var(--gold);
+  color: #061222;
+  padding: 3px 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  margin-left: 6px;
+  letter-spacing: 1.5px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+}
+.marketplace-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(43, 212, 255, 0.06);
+  border: 2px solid var(--neon);
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--txt);
+  box-shadow: 4px 4px 0 #000;
+}
+.ms-badge {
+  background: var(--neon);
+  color: #061222;
+  padding: 5px 9px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.ms-msg { color: var(--txt-dim); flex: 1; }
+
+.marketplace-row.own-listing {
+  box-shadow: inset 0 0 0 2px var(--gold), 6px 6px 0 #000, 0 0 30px rgba(255,211,90,0.35) !important;
+}
+.marketplace-row.own-listing .hit-rank {
+  background: var(--gold);
+  color: #061222;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.ft-pack-line {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px !important;
+  color: var(--txt) !important;
+  letter-spacing: 1px;
+  background: rgba(43,212,255,0.08);
+  border: 1px solid var(--neon);
+  padding: 8px 10px !important;
+  margin-bottom: 10px !important;
+}
+.ft-pack-line b { color: var(--neon); }
+.ft-pack-line small { color: var(--txt-dim); margin: 0 4px; }
+
 /* era tag in top-right corner */
 .rp-era-tag {
   position: absolute;
@@ -2456,7 +2850,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .hits-section {
   padding: 80px 28px;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -2573,7 +2967,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .postrip-section {
   padding: 80px 28px;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -2674,7 +3068,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .how-section {
   padding: 80px 28px;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -2729,7 +3123,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .tokenomics-section {
   padding: 80px 28px;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -2855,7 +3249,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .owner-section {
   padding: 80px 28px;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -2973,7 +3367,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
 
 .shop-gallery-section {
   padding: 80px 28px;
-  max-width: 1200px;
+  max-width: min(94vw, 1600px);
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -3164,7 +3558,7 @@ a.nav-cta { text-decoration: none; display: inline-flex; align-items: center; }
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 28px;
   padding: 48px 28px;
-  max-width: 1100px;
+  max-width: min(94vw, 1500px);
   margin: 0 auto;
 }
 

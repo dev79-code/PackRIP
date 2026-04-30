@@ -204,9 +204,23 @@ const PACKS = [
     marketUSD: 6,    stock: 58, accent: '#ffe14a',
     pull: { common: 5, uncommon: 3, rare: 1.5, holo: 0.6, ultra: 0.18, secret: 0.05 },
   },
+
+  // ============ MYSTERY RIP — unknown contents, pack art is hidden ============
+  {
+    id: 'mystery', logoSet: null, featuredCard: { set: 'sv3pt5', num: '199' },
+    name: 'Mystery RIP',           nameJp: '???',
+    year: '????', era: 'mystery',  tag: '??? · CONTENTS UNKNOWN',
+    marketUSD: 33,   stock: 99, accent: '#9c5dff',
+    mystery: true,
+    /* generous pull weights — anything from common to secret rare */
+    pull: { common: 4, uncommon: 3, rare: 2.0, holo: 1.0, ultra: 0.4, secret: 0.15 },
+  },
 ];
 
-// derive burn from market price + attach the user-provided pack photo path
+// derive burn from market price + attach the user-provided pack photo path.
+// Also derive a SOL "all-in" price from market USD using a mock $200/SOL conversion —
+// users can either burn $RIP+0.05 SOL OR pay full SOL.
+const SOL_USD = 200;
 const PACK_IMG_EXT = {
   'base1-1ed': 'jpg', 'base1': 'jpg', 'base2': 'jpg', 'base3': 'jpg',
   'base5': 'jpg', 'base6': 'jpg',
@@ -217,7 +231,9 @@ const PACK_IMG_EXT = {
 };
 PACKS.forEach(p => {
   p.burn = p.marketUSD * BURN_RATE;
-  p.sol  = 0.05;
+  p.sol  = 0.05; // small SOL fee when paying with $RIP
+  // total SOL price if user opts to pay all-in SOL (1.05x market for shop margin)
+  p.solAllIn = +(p.marketUSD * 1.05 / SOL_USD).toFixed(3);
   const ext = PACK_IMG_EXT[p.id];
   if (ext) p.packImg = `img/pack-${p.id}.${ext}`;
 });
@@ -273,35 +289,102 @@ const QUEUE_PACKS = ['Pokémon 151', 'Paldean Fates', 'Surging Sparks', 'Shroude
 
 const PACK_SIZE = 5;
 
-// ---------- STATE ----------
+// ---------- STATE (wallet-keyed inventory) ----------
+// each wallet has its own localStorage record under packrip_inv_<addr>.
+// before a wallet is connected, we use packrip_inv_GUEST as the default bucket.
+// when a wallet connects, we load that wallet's inventory; on disconnect we revert to GUEST.
+
+const GLOBAL_KEY = 'packrip_global'; // wallet address only — not per-wallet inventory
+const invKey = (addr) => 'packrip_inv_' + (addr || 'GUEST');
+
 const state = {
+  // per-wallet inventory
   coins: 9999,
   selectedPackId: null,
   pulled: [],
   revealIdx: 0,
-  roster: [],
-  freeUsed: false,
+  collection: [],   // cards the user has opened + kept (was: roster)
+  packs: [],        // unopened packs the user owns
+  listings: [],     // items the user has listed for sale on the (coming soon) marketplace
+  freeUsed: false,  // one-time free-rip flag (per wallet)
+  // global (shared across wallets)
   wallet: null,
 };
 
-try {
-  const saved = JSON.parse(localStorage.getItem('packrip_state') || '{}');
-  if (saved.coins != null) state.coins = saved.coins;
-  if (Array.isArray(saved.roster)) state.roster = saved.roster;
-  if (saved.freeUsed) state.freeUsed = true;
-  if (saved.wallet) state.wallet = saved.wallet;
-} catch (e) {}
-
-function save() {
+function loadInventory(addr) {
   try {
-    localStorage.setItem('packrip_state', JSON.stringify({
+    const saved = JSON.parse(localStorage.getItem(invKey(addr)) || '{}');
+    state.coins      = saved.coins      != null ? saved.coins : 9999;
+    state.collection = Array.isArray(saved.collection) ? saved.collection
+                       : Array.isArray(saved.roster)   ? saved.roster /* legacy */
+                       : [];
+    state.packs      = Array.isArray(saved.packs)    ? saved.packs    : [];
+    state.listings   = Array.isArray(saved.listings) ? saved.listings : [];
+    state.freeUsed   = !!saved.freeUsed;
+  } catch (e) {
+    state.coins = 9999; state.collection = []; state.packs = []; state.listings = []; state.freeUsed = false;
+  }
+}
+
+function saveInventory() {
+  try {
+    localStorage.setItem(invKey(state.wallet), JSON.stringify({
       coins: state.coins,
-      roster: state.roster,
+      collection: state.collection,
+      packs: state.packs,
+      listings: state.listings,
       freeUsed: state.freeUsed,
-      wallet: state.wallet,
     }));
   } catch (e) {}
 }
+
+function loadGlobal() {
+  try {
+    const g = JSON.parse(localStorage.getItem(GLOBAL_KEY) || '{}');
+    state.wallet = g.wallet || null;
+  } catch (e) { state.wallet = null; }
+}
+
+function saveGlobal() {
+  try {
+    localStorage.setItem(GLOBAL_KEY, JSON.stringify({ wallet: state.wallet }));
+  } catch (e) {}
+}
+
+// migrate the old single-key state ("packrip_state") into the new wallet-keyed model
+(function migrateLegacy() {
+  try {
+    const legacy = JSON.parse(localStorage.getItem('packrip_state') || 'null');
+    if (legacy) {
+      const addr = legacy.wallet || null;
+      const targetKey = invKey(addr);
+      if (!localStorage.getItem(targetKey)) {
+        localStorage.setItem(targetKey, JSON.stringify({
+          coins: legacy.coins,
+          collection: legacy.roster || [],
+          packs: [],
+          listings: [],
+          freeUsed: !!legacy.freeUsed,
+        }));
+      }
+      if (addr && !localStorage.getItem(GLOBAL_KEY)) {
+        localStorage.setItem(GLOBAL_KEY, JSON.stringify({ wallet: addr }));
+      }
+      localStorage.removeItem('packrip_state');
+    }
+  } catch (e) {}
+})();
+
+loadGlobal();
+loadInventory(state.wallet);
+
+// keep a back-compat alias so older render code that reads state.roster still works
+Object.defineProperty(state, 'roster', {
+  get() { return state.collection; },
+  set(v) { state.collection = v; },
+});
+
+const save = saveInventory; // alias used throughout the rest of the file
 
 // ---------- DRAW ----------
 function weighted(weights) {
@@ -357,64 +440,96 @@ function renderRealPackGrid(filter = 'all') {
     if (filter === 'boutique') return p.era === 'boutique';
     if (filter === 'modern')   return p.era === 'modern';
     if (filter === 'japan')    return /JAPAN/.test(p.tag);
+    if (filter === 'mystery')  return p.era === 'mystery';
     return true;
   });
 
   filtered.forEach((p) => {
     const stockClass = p.stock <= 3 ? 'low' : p.stock < 15 ? 'mid' : 'high';
-    const isVintage  = p.era === 'vintage';
     const isLastOne  = p.stock === 1;
-    const eraLabel   = p.era === 'vintage' ? 'OG' : p.era === 'boutique' ? 'BOUTIQUE' : 'MODERN';
+    const isMystery  = !!p.mystery;
+    const eraLabel   = isMystery ? '???' :
+                       p.era === 'vintage' ? 'OG' :
+                       p.era === 'boutique' ? 'BOUTIQUE' : 'MODERN';
 
     const el = document.createElement('div');
-    el.className = 'real-pack era-' + p.era + (isLastOne ? ' last-one' : '');
+    el.className = 'real-pack era-' + p.era + (isLastOne ? ' last-one' : '') + (isMystery ? ' is-mystery' : '');
     el.style.setProperty('--accent', p.accent);
+
+    const artHTML = isMystery
+      ? `<div class="rp-art">
+           <div class="rp-mystery-art">
+             <div class="rp-q">?</div>
+             <div class="rp-mystery-label">MYSTERY · RIP</div>
+             <div class="rp-mystery-sub">CONTENTS UNKNOWN</div>
+           </div>
+           <div class="rp-photo-shine"></div>
+           <div class="rp-year">????</div>
+         </div>`
+      : `<div class="rp-art">
+           <img class="rp-photo" src="${p.packImg}" alt="${p.name} sealed booster pack" loading="lazy" />
+           <div class="rp-photo-shine"></div>
+           <div class="rp-year">${p.year}</div>
+         </div>`;
+
     el.innerHTML = `
       <div class="rp-era-tag">${eraLabel}</div>
       ${isLastOne ? '<div class="rp-fire">▶ LAST ONE</div>' : ''}
-      <div class="rp-art">
-        <!-- real product photo of the sealed pack -->
-        <img class="rp-photo" src="${p.packImg}"
-             alt="${p.name} sealed booster pack" loading="lazy" />
-        <div class="rp-photo-shine"></div>
-        <div class="rp-year">${p.year}</div>
-      </div>
+      ${artHTML}
       <div class="rp-meta">
         <div class="rp-name">${p.name}</div>
         <div class="rp-jp">${p.nameJp}</div>
         <div class="rp-tag">${p.tag}</div>
         <div class="rp-stock stock-${stockClass}">
-          <span class="dot"></span> ${p.stock} sealed in stock
+          <span class="dot"></span> ${isMystery ? '???' : p.stock + ' sealed in stock'}
         </div>
         <div class="rp-pricebox">
+          ${isMystery ? '' : `
           <div class="rp-row rp-market">
             <span class="rp-row-label">💵 MARKET</span>
             <span class="rp-row-val">${fmtUSD(p.marketUSD)}<small> USD</small></span>
-          </div>
+          </div>`}
           <div class="rp-row rp-burn-row">
             <span class="rp-row-label">▶ BURN</span>
             <span class="rp-row-val">${fmt(p.burn)}<small> $RIP</small></span>
           </div>
           <div class="rp-row rp-sol-row">
             <span class="rp-row-label">+ FEE</span>
-            <span class="rp-row-val">${p.sol.toFixed(2)}<small> SOL flat</small></span>
+            <span class="rp-row-val">${p.sol.toFixed(2)}<small> SOL</small></span>
+          </div>
+          <div class="rp-divider"><span>OR</span></div>
+          <div class="rp-row rp-solpay-row">
+            <span class="rp-row-label">◎ SOL ALL-IN</span>
+            <span class="rp-row-val">${p.solAllIn.toFixed(3)}<small> SOL</small></span>
           </div>
         </div>
-        <button class="pixel-btn primary rp-btn" data-pack-id="${p.id}">▶ RIP THIS</button>
+        <div class="rp-btn-row">
+          <button class="pixel-btn primary rp-btn" data-pack-id="${p.id}" data-pay="rip">▶ RIP w/ $RIP</button>
+          <button class="pixel-btn ghost rp-btn rp-btn-sol" data-pack-id="${p.id}" data-pay="sol">◎ RIP w/ SOL</button>
+        </div>
       </div>
     `;
     grid.appendChild(el);
   });
 
-  // wire buttons
+  // wire RIP buttons (both $RIP and SOL paths flow into the same simulator;
+  // the chosen payment is recorded so the summary can show it)
   grid.querySelectorAll('[data-pack-id]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (state.freeUsed) { showFreeUsedToast(); return; }
-      openRipModal();
-      // pre-select this pack and jump to rip screen
-      const pid = btn.dataset.packId;
-      state.selectedPackId = pid;
+      const pid    = btn.dataset.packId;
+      const payWith = btn.dataset.pay; // 'rip' | 'sol'
       const pack = PACKS.find(p => p.id === pid);
+      if (!pack) return;
+      // free rip doesn't apply to a mystery pack flow with paid intent — but for sim
+      // purposes we still gate the FIRST rip on freeUsed unless the user has earned packs.
+      // Once their freeUsed is consumed, subsequent attempts open with a paid-flow toast.
+      if (state.freeUsed && state.packs.length === 0) {
+        showFreeUsedToast(pack, payWith);
+        return;
+      }
+      state.selectedPackId = pid;
+      state.lastPayWith = payWith;
+      openRipModal();
       setupRipScreen(pack);
       showScreen('rip');
     });
@@ -474,6 +589,59 @@ function renderTicker() {
   }
   // duplicate for seamless scroll
   track.innerHTML = lines.join('') + lines.join('');
+}
+
+// ---------- LANDING: MARKETPLACE (coming soon) ----------
+// Seed mock listings so the grid never looks empty; the user's own listings
+// (state.listings) are merged in on top so their items show up after they list.
+const SEED_LISTINGS = [
+  { handle: '@pulled_a_zard',  card: REAL_CARDS.secret[0], askUSD: 1840, when: '14m ago' },
+  { handle: '@osakaholic',     card: REAL_CARDS.ultra[0],  askUSD: 420,  when: '38m ago' },
+  { handle: '@psa10_or_die',   card: REAL_CARDS.secret[4], askUSD: 310,  when: '1h ago'  },
+  { handle: '@sealed_in_jp',   card: REAL_CARDS.ultra[3],  askUSD: 285,  when: '2h ago'  },
+  { handle: '@ripper_ape',     card: REAL_CARDS.holo[2],   askUSD: 95,   when: '3h ago'  },
+  { handle: '@kyoto_collector',card: REAL_CARDS.secret[3], askUSD: 240,  when: '4h ago'  },
+];
+
+function renderMarketplace() {
+  const list = $('marketplaceList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  // user's own listings (newest first), then seed
+  const userItems = state.listings.map(l => ({
+    handle: 'YOU',
+    card: l.card,
+    askUSD: l.askUSD,
+    when: 'just now',
+    own: true,
+  }));
+  const all = [...userItems, ...SEED_LISTINGS.map(l => ({ ...l, own: false }))];
+
+  all.forEach((item, i) => {
+    const card = item.card;
+    const row = document.createElement('div');
+    row.className = 'hit-row marketplace-row' + (item.own ? ' own-listing' : '');
+    const rarityCss = (card.rarity && card.rarity.css) || 'r-ultra';
+    const rarityLabel = (card.rarity && card.rarity.label) || 'ULTRA';
+    row.innerHTML = `
+      <div class="hit-rank">${item.own ? 'YOU' : '#' + (i + 1)}</div>
+      <div class="hit-img">
+        <img src="${cardImg(card.set, card.num, true)}"
+             onerror="this.onerror=null;this.src='${cardImg(card.set, card.num, false)}'"
+             alt="${card.name}" loading="lazy" />
+      </div>
+      <div class="hit-meta">
+        <div class="hit-name">${card.name}</div>
+        <div class="hit-pack">listed by <b>${item.handle}</b> · ${item.when}</div>
+      </div>
+      <div class="hit-value">
+        <div class="hit-val">$${item.askUSD.toLocaleString()}</div>
+        <button class="pixel-btn ghost hit-clip" disabled>BID · soon</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
 }
 
 // ---------- LANDING: HIT BOARD ----------
@@ -548,7 +716,9 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------- FREE-USED TOAST ----------
-function showFreeUsedToast() {
+// Now offers a paid path: pay with SOL or burn $RIP to rip another pack,
+// instead of fully blocking. Also offers to view your collection/listings.
+function showFreeUsedToast(pack, payWith) {
   let t = document.getElementById('freeToast');
   if (!t) {
     t = document.createElement('div');
@@ -556,32 +726,53 @@ function showFreeUsedToast() {
     t.className = 'free-toast';
     document.body.appendChild(t);
   }
-  const hasRoster = state.roster.length > 0;
+  const hasCollection = state.collection.length > 0;
+  const packName = pack ? pack.name : null;
+  const solPrice = pack ? pack.solAllIn.toFixed(3) : null;
+  const ripPrice = pack ? fmt(pack.burn) : null;
   t.innerHTML = `
     <div class="ft-card">
       <div class="ft-x" id="ftClose">×</div>
       <div class="ft-icon">🪙</div>
       <h3>FREE RIP USED</h3>
-      <p>you've ripped your one free sim pack. to keep ripping, burn <b>$RIP</b>.</p>
-      <p class="ft-soon">token launching on <b>pump.fun</b> · connect your wallet to be ready</p>
+      <p>your one free sim is consumed. to rip another, pay with <b>$RIP</b> or <b>SOL</b>.</p>
+      ${pack ? `
+        <p class="ft-pack-line">selected: <b>${packName}</b> · ${ripPrice} $RIP <small>or</small> ◎ ${solPrice} SOL</p>
+      ` : '<p class="ft-soon">token launching on <b>pump.fun</b> soon</p>'}
       <div class="ft-actions">
-        <a class="pixel-btn primary" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP ▶</a>
-        ${hasRoster ? '<button class="pixel-btn ghost" id="ftRoster">view your pulls</button>' : ''}
-        <button class="pixel-btn ghost" id="ftWallet">connect wallet</button>
+        ${pack ? `
+          <button class="pixel-btn primary" id="ftPaySol">◎ PAY ${solPrice} SOL ▶</button>
+          <a class="pixel-btn ghost" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP</a>
+        ` : `
+          <a class="pixel-btn primary" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP ▶</a>
+        `}
+        ${hasCollection ? '<button class="pixel-btn ghost" id="ftRoster">view collection</button>' : ''}
+        ${state.wallet ? '' : '<button class="pixel-btn ghost" id="ftWallet">connect wallet</button>'}
       </div>
     </div>
   `;
   t.classList.add('show');
   document.getElementById('ftClose').addEventListener('click', () => t.classList.remove('show'));
-  if (hasRoster) {
+  if (hasCollection) {
     document.getElementById('ftRoster').addEventListener('click', () => {
       t.classList.remove('show');
       openRosterOnly();
     });
   }
-  document.getElementById('ftWallet').addEventListener('click', () => {
+  const wbtn = document.getElementById('ftWallet');
+  if (wbtn) wbtn.addEventListener('click', () => { t.classList.remove('show'); connectWallet(); });
+  const sbtn = document.getElementById('ftPaySol');
+  if (sbtn) sbtn.addEventListener('click', () => {
     t.classList.remove('show');
-    connectWallet();
+    // Mock SOL payment — adds the pack to user's owned-packs inventory and immediately rips it
+    state.packs.push({ packId: pack.id, paidWith: 'sol', solPaid: pack.solAllIn, ts: Date.now() });
+    saveInventory();
+    state.selectedPackId = pack.id;
+    state.lastPayWith = 'sol';
+    openRipModal();
+    setupRipScreen(pack);
+    showScreen('rip');
+    // freeUsed gate is bypassed because they paid
   });
 }
 
@@ -890,8 +1081,8 @@ function onCardFlipped(card, el) {
     spawnSparkles(el);
   }
 
-  state.roster.unshift(card);
-  save();
+  /* no longer auto-bank into the collection — the user chooses each card's
+     disposition (keep / sell / burn-forward) on the summary screen */
 
   setTimeout(() => {
     $('nextCardBtn').style.display = '';
@@ -922,12 +1113,7 @@ $('nextCardBtn').addEventListener('click', () => {
 });
 
 $('skipBtn').addEventListener('click', () => {
-  for (let i = state.revealIdx; i < state.pulled.length; i++) {
-    if (!state.roster.includes(state.pulled[i])) {
-      state.roster.unshift(state.pulled[i]);
-    }
-  }
-  save();
+  // jump straight to summary — user will choose dispositions there per card
   showSummary();
 });
 
@@ -939,22 +1125,63 @@ function showSummary() {
   let bestRank = -1;
   state.pulled.forEach((card, i) => {
     const mini = document.createElement('div');
-    mini.className = `mini-card ${card.rarity.css}`;
+    mini.className = `mini-card ${card.rarity.css}` + (card.choice ? ' chose-' + card.choice : '');
     mini.style.animationDelay = (i * 0.08) + 's';
+    mini.dataset.cardId = card.id;
     mini.innerHTML = `
       <div class="mini-rarity">${card.rarity.label}</div>
       <img class="mini-img" src="${card.img}"
         onerror="this.onerror=null;this.src='${card.imgFallback}'" alt="${card.name}" />
       <div class="mini-name">${card.name}</div>
+      <!-- per-card disposition CTAs -->
+      <div class="card-actions">
+        <button class="ca-btn ca-keep" data-action="keep">KEEP</button>
+        <button class="ca-btn ca-sell" data-action="sell">SELL</button>
+        <button class="ca-btn ca-burn" data-action="burn">BURN FWD</button>
+      </div>
+      <div class="card-action-status"></div>
     `;
     grid.appendChild(mini);
+
+    // wire each card's actions
+    mini.querySelectorAll('[data-action]').forEach(b => {
+      b.addEventListener('click', () => disposeCard(card, b.dataset.action, mini));
+    });
+
     const rank = RARITIES.findIndex(r => r.key === card.rarity.key);
     if (rank > bestRank) bestRank = rank;
   });
 
   const bestKey = RARITIES[bestRank].key;
   $('summaryHype').textContent = choice(HYPE_LINES[bestKey]);
-  $('rosterCount').textContent = state.roster.length;
+  $('rosterCount').textContent = state.collection.length;
+}
+
+/* per-card "what should happen to this pull" — keep, sell on marketplace, burn forward */
+function disposeCard(card, action, mini) {
+  const status = mini.querySelector('.card-action-status');
+  if (action === 'keep') {
+    if (!state.collection.find(c => c.id === card.id)) state.collection.unshift(card);
+    card.choice = 'keep';
+    status.textContent = '✓ in collection';
+    mini.classList.add('chose-keep');
+  } else if (action === 'sell') {
+    // mock: move to listings, ask a price (mid-rarity-based estimate)
+    const askUSD = { common: 1, uncommon: 3, rare: 8, holo: 25, ultra: 75, secret: 250 }[card.rarity.key] || 5;
+    if (!state.listings.find(l => l.card.id === card.id)) {
+      state.listings.unshift({ card, askUSD, askSOL: +(askUSD / SOL_USD).toFixed(3), seller: state.wallet || 'GUEST', ts: Date.now() });
+    }
+    card.choice = 'sell';
+    status.textContent = `✓ listed @ $${askUSD}`;
+    mini.classList.add('chose-sell');
+  } else if (action === 'burn') {
+    card.choice = 'burn';
+    status.textContent = '✓ donated to raffle pool';
+    mini.classList.add('chose-burn');
+  }
+  saveInventory();
+  // re-render the marketplace if it's on-page (so listings appear immediately)
+  if (document.getElementById('marketplaceList')) renderMarketplace();
 }
 
 $('ripAgainBtn').addEventListener('click', () => {
@@ -1058,9 +1285,15 @@ async function connectWallet() {
   }
   try {
     const resp = await phantom.connect();
+    // persist current GUEST inventory before swapping
+    saveInventory();
     state.wallet = resp.publicKey.toString();
-    save();
+    saveGlobal();
+    // load the wallet-specific inventory (or initialize a fresh one for this wallet)
+    loadInventory(state.wallet);
     updateWalletUI();
+    // re-render anything that shows wallet-derived state
+    if (document.getElementById('marketplaceList')) renderMarketplace();
   } catch (e) {
     // user cancelled
   }
@@ -1070,9 +1303,13 @@ async function disconnectWallet() {
   try {
     if (window.solana && window.solana.disconnect) await window.solana.disconnect();
   } catch (e) {}
+  // persist this wallet's inventory before swapping back to GUEST
+  saveInventory();
   state.wallet = null;
-  save();
+  saveGlobal();
+  loadInventory(null);
   updateWalletUI();
+  if (document.getElementById('marketplaceList')) renderMarketplace();
 }
 
 if (walletBtn) {
@@ -1100,3 +1337,4 @@ renderRealPackGrid('all');
 renderQueue();
 renderTicker();
 renderHitBoard();
+renderMarketplace();
