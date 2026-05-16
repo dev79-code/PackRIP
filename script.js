@@ -1641,39 +1641,44 @@ function renderCardsGrid() {
   const grid = document.getElementById('cardsGrid');
   if (!grid) return;
   grid.innerHTML = '';
-  const allCards = [
-    ...(REAL_CARDS.common || []),
-    ...(REAL_CARDS.uncommon || []),
-    ...(REAL_CARDS.rare || []),
-    ...(REAL_CARDS.holo || []),
-    ...(REAL_CARDS.ultra || []),
-    ...(REAL_CARDS.secret || []),
+  const buckets = [
+    ['common', REAL_CARDS.common], ['uncommon', REAL_CARDS.uncommon],
+    ['rare', REAL_CARDS.rare], ['holo', REAL_CARDS.holo],
+    ['ultra', REAL_CARDS.ultra], ['secret', REAL_CARDS.secret],
   ];
-  const grades = ['PSA 10', 'PSA 9', 'Beckett 9.5', 'Beckett 10', 'CGC 9', 'CGC 7.5'];
-  allCards.forEach((c, i) => {
-    const tile = document.createElement('div');
-    tile.className = 'card-tile';
-    const baseVal = c.set === 'base1' ? 4500 : c.set === 'sv4pt5' ? 800 : c.set === 'sv3pt5' ? 350 : 120;
-    const value = (baseVal + (i * 37) % 600).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const grade = grades[i % grades.length];
-    tile.innerHTML = `
-      <div class="card-img-wrap">
-        <img src="${cardImg(c.set, c.num, false)}" alt="${c.name}" loading="lazy" />
-        <span class="card-grade-badge">${grade}</span>
-      </div>
-      <h3 class="card-name">${c.set.toUpperCase()} · ${c.name}</h3>
-      <div class="card-meta">
-        <div>
-          <div class="card-meta-label">Insured value</div>
-          <div class="card-value"><span class="card-value-icon">¢</span>${value}</div>
+  buckets.forEach(([rk, arr]) => {
+    const rar = (typeof RARITIES !== 'undefined') ? RARITIES.find(r => r.key === rk) : null;
+    (arr || []).forEach(c => {
+      const card = Object.assign({}, c, { rarity: rar });
+      const rec  = (typeof getPrice === 'function') ? getPrice(card) : { value: null, isEst: true };
+      const tr   = (typeof priceTrend === 'function') ? priceTrend(rec) : null;
+      const src  = rec.isEst ? '' : (rec.tcgUrl || rec.cmUrl ||
+        `https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(c.name)}`);
+      const nm   = (!rec.isEst && rec.name) ? rec.name : c.name;
+      const tile = document.createElement('div');
+      tile.className = 'card-tile';
+      tile.innerHTML = `
+        <div class="card-img-wrap">
+          <img src="${cardImg(c.set, c.num, false)}" alt="${nm}" loading="lazy" />
+          <span class="card-grade-badge">${rar ? rar.label : ''}</span>
         </div>
-        <div style="text-align:right">
-          <div class="card-meta-label">Grade</div>
-          <div class="card-grade">${grade}</div>
+        <h3 class="card-name">${c.set.toUpperCase()} · ${nm}</h3>
+        <div class="card-meta">
+          <div>
+            <div class="card-meta-label">Market price${rec.isEst ? ' (est.)' : ''}</div>
+            <div class="card-value">${typeof fmtUSD === 'function' ? fmtUSD(rec.value) : ('$' + (rec.value||0))}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="card-meta-label">${tr != null ? '30d · Cardmarket' : 'Source'}</div>
+            <div class="card-grade">${tr != null
+              ? `<span class="${tr>=0?'cg-up':'cg-down'}">${tr>=0?'+':''}${tr.toFixed(1)}%</span>`
+              : (rec.isEst ? 'estimate' : 'TCGplayer')}</div>
+          </div>
         </div>
-      </div>
-    `;
-    grid.appendChild(tile);
+        ${rec.isEst ? '' : `<a class="card-src" href="${src}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Verify price at source ↗</a>`}
+      `;
+      grid.appendChild(tile);
+    });
   });
 }
 
@@ -1817,68 +1822,182 @@ function runHeroStatsCountUp() {
 }
 
 // ============================================================
-// ===== CARD INTELLIGENCE DASHBOARD =====
+// ===== CARD INTELLIGENCE — LIVE, VERIFIABLE MARKET DATA =====
+//   Prices come from the public Pokémon TCG API (pokemontcg.io),
+//   which mirrors TCGplayer (USD) and Cardmarket (EUR) market
+//   data. Every card links straight to its source so the price
+//   can be independently verified. Nothing here is fabricated;
+//   if the API is unreachable we show clearly-flagged "EST."
+//   rarity estimates instead of inventing numbers.
 // ============================================================
 
-// deterministic seed from set+num so prices/history stay stable across reloads
+const PRICE_API   = 'https://api.pokemontcg.io/v2/cards';
+const PRICE_CACHE = 'packrip_prices_v1';
+const PRICE_TTL   = 12 * 60 * 60 * 1000;          // 12h
+const PRICE_DATA  = {};                            // "set-num" -> record
+const PRICE_STATE = { status: 'idle', updated: 0 };
+
+const cardKey = (c) => c.set + '-' + c.num;
+
+// --- deterministic estimate (only when the live API is unreachable) ---
 function _cardSeed(card) {
   const s = (card.set || '') + (card.num || '');
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
-function _seededRand(seedObj) {
-  // mulberry32
-  seedObj.s = (seedObj.s + 0x6D2B79F5) >>> 0;
-  let t = seedObj.s;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-}
-
 const RARITY_BASE = { common: 2, uncommon: 6, rare: 22, holo: 85, ultra: 410, secret: 1600 };
-
-function cardBasePrice(card) {
-  const key = (card.rarity && card.rarity.key) || 'rare';
+function estPrice(card) {
+  const key  = (card.rarity && card.rarity.key) || 'rare';
   const base = RARITY_BASE[key] || 22;
-  const seed = _cardSeed(card);
-  const mult = 0.6 + ((seed % 1000) / 1000) * 1.1; // 0.6x–1.7x
+  const mult = 0.6 + ((_cardSeed(card) % 1000) / 1000) * 1.1;
   return +(base * mult).toFixed(2);
 }
 
-function cardHistory(card, points = 30) {
-  const so = { s: _cardSeed(card) };
-  let price = cardBasePrice(card);
-  const hist = [];
-  for (let i = 0; i < points; i++) {
-    const drift = (_seededRand(so) - 0.48) * price * 0.05; // slight upward bias, ±~2.5%
-    price = Math.max(0.1, price + drift);
-    hist.push(+price.toFixed(2));
+// printing priority — the variant a buyer is most likely to see first
+const PRINT_ORDER = ['holofoil', '1stEditionHolofoil', 'unlimitedHolofoil',
+  'reverseHolofoil', '1stEdition', 'unlimited', 'normal'];
+const PRINT_LABEL = {
+  holofoil: 'Holofoil', '1stEditionHolofoil': '1st Ed. Holofoil',
+  unlimitedHolofoil: 'Unlimited Holofoil', reverseHolofoil: 'Reverse Holofoil',
+  '1stEdition': '1st Edition', unlimited: 'Unlimited', normal: 'Normal',
+};
+function pickPrinting(prices) {
+  if (!prices) return null;
+  for (const k of PRINT_ORDER) if (prices[k]) return { key: k, p: prices[k] };
+  const ks = Object.keys(prices);
+  return ks.length ? { key: ks[0], p: prices[ks[0]] } : null;
+}
+
+// turn one raw API card into our normalized record
+function parsePrice(api) {
+  const rec = { id: api.id, name: api.name, isEst: false };
+  const tp = api.tcgplayer;
+  if (tp && tp.prices) {
+    const pr = pickPrinting(tp.prices);
+    if (pr) {
+      const p = pr.p;
+      rec.printing = PRINT_LABEL[pr.key] || pr.key;
+      rec.low = p.low; rec.mid = p.mid; rec.high = p.high;
+      rec.market = p.market; rec.directLow = p.directLow;
+      rec.value  = p.market != null ? p.market : (p.mid != null ? p.mid : p.low);
+    }
+    rec.prints = Object.keys(tp.prices).map(k => Object.assign(
+      { label: PRINT_LABEL[k] || k }, tp.prices[k]));
+    rec.tcgUrl = tp.url;
+    rec.tcgUpdated = tp.updatedAt;
   }
-  return hist;
+  const cm = api.cardmarket;
+  if (cm && cm.prices) {
+    rec.cm = {
+      trend: cm.prices.trendPrice, avg1: cm.prices.avg1,
+      avg7: cm.prices.avg7, avg30: cm.prices.avg30,
+      low: cm.prices.lowPrice, avgSell: cm.prices.averageSellPrice,
+    };
+    rec.cmUrl = cm.url;
+    rec.cmUpdated = cm.updatedAt;
+    if (rec.value == null && rec.cm.trend) rec.value = rec.cm.trend;
+  }
+  return rec;
 }
 
-function cardStats(hist) {
-  const first = hist[0], last = hist[hist.length - 1];
-  const min = Math.min(...hist), max = Math.max(...hist);
-  const change = ((last - first) / first) * 100;
-  const vol = ((max - min) / ((max + min) / 2)) * 100;
-  return { first, last, min, max, change, vol, points: hist.length };
+function allCardIds() {
+  const ids = new Set();
+  Object.values(REAL_CARDS).forEach(arr => arr.forEach(c => ids.add(cardKey(c))));
+  return [...ids];
 }
 
-function marketAnalysis(card, hist) {
-  const st = cardStats(hist);
-  const sentiment = st.change > 5 ? 'BULLISH' : st.change < -5 ? 'BEARISH' : 'STABLE';
-  const dir = st.change > 2 ? 'trending up' : st.change < -2 ? 'cooling off' : 'holding a stable band';
-  const tail = st.change > 5
-    ? 'Momentum favors holders — consider scaling out partial into strength.'
-    : st.change < -5
-    ? 'Weakness here may be a re-entry window for long-term holds.'
-    : 'Price discovery is calm — an accumulation-friendly band.';
+function loadPriceCache() {
+  try {
+    const j = JSON.parse(localStorage.getItem(PRICE_CACHE) || 'null');
+    if (!j || !j.t || !j.d) return false;
+    Object.assign(PRICE_DATA, j.d);
+    const fresh = (Date.now() - j.t) < PRICE_TTL;
+    PRICE_STATE.status  = fresh ? 'ok' : 'stale';
+    PRICE_STATE.updated = j.t;
+    return fresh;
+  } catch (e) { return false; }
+}
+function savePriceCache() {
+  try { localStorage.setItem(PRICE_CACHE, JSON.stringify({ t: Date.now(), d: PRICE_DATA })); }
+  catch (e) {}
+}
+
+async function fetchRealPrices(force) {
+  const fresh = loadPriceCache();
+  renderIntel();                                   // paint with cache/estimates first
+  if (typeof renderCardsGrid === 'function') renderCardsGrid();
+  if (fresh && !force) return;
+  if (PRICE_STATE.status === 'loading') return;
+
+  PRICE_STATE.status = 'loading';
+  renderIntel();
+  try {
+    const ids = allCardIds();
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 20) chunks.push(ids.slice(i, i + 20));
+    for (const ch of chunks) {
+      const q   = ch.map(id => `id:${id}`).join(' OR ');
+      const url = `${PRICE_API}?q=(${encodeURIComponent(q)})&pageSize=250` +
+                  `&select=id,name,tcgplayer,cardmarket`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      (j.data || []).forEach(api => { PRICE_DATA[api.id] = parsePrice(api); });
+    }
+    PRICE_STATE.status  = 'ok';
+    PRICE_STATE.updated = Date.now();
+    savePriceCache();
+  } catch (e) {
+    PRICE_STATE.status = Object.keys(PRICE_DATA).length ? 'stale' : 'error';
+    console.warn('[packrip] live price fetch failed:', e);
+  }
+  renderIntel();
+  if (typeof renderCardsGrid === 'function') renderCardsGrid();
+}
+
+// the single price accessor everything uses
+function getPrice(card) {
+  const rec = PRICE_DATA[cardKey(card)];
+  if (rec && rec.value != null) return rec;
+  const v = estPrice(card);                        // flagged fallback
   return {
-    sentiment,
-    text: `${card.name} (${(card.set || '').toUpperCase()} #${card.num}) is ${dir} — ranged $${st.min.toFixed(2)}–$${st.max.toFixed(2)} over ${st.points} days, a ${st.change >= 0 ? '+' : ''}${st.change.toFixed(1)}% move. Volatility index: ${st.vol.toFixed(1)}%. ${tail}`,
+    id: cardKey(card), name: card.name, value: v, isEst: true,
+    low: +(v * 0.7).toFixed(2), mid: v, high: +(v * 1.8).toFixed(2),
+    market: v, printing: 'Estimate',
   };
+}
+
+// honest momentum from REAL Cardmarket 1-day vs 30-day average sale prices
+function priceTrend(rec) {
+  if (rec && rec.cm && rec.cm.avg30 && rec.cm.avg1)
+    return ((rec.cm.avg1 - rec.cm.avg30) / rec.cm.avg30) * 100;
+  return null;
+}
+
+function marketAnalysis(card, rec) {
+  const nm = (rec && rec.name) || card.name;
+  if (rec.isEst) {
+    return { sentiment: 'NEUTRAL',
+      text: `Live market data for ${nm} is temporarily unavailable, so the figure shown is a rarity-based estimate — not a real quote. Prices reload automatically; use the source links to verify once they do.` };
+  }
+  const tr = priceTrend(rec);
+  const sentiment = tr == null ? 'NEUTRAL' : tr > 5 ? 'BULLISH' : tr < -5 ? 'BEARISH' : 'STABLE';
+  const spread = (rec.low != null && rec.high != null)
+    ? ` Its current TCGplayer ${rec.printing || ''} spread runs ${fmtUSD(rec.low)}–${fmtUSD(rec.high)} with a market price of ${fmtUSD(rec.market)}.`
+    : '';
+  let cmBit = '';
+  if (rec.cm && tr != null) {
+    const dir = tr > 2 ? 'up' : tr < -2 ? 'down' : 'roughly flat';
+    cmBit = ` Cardmarket's average sale price moved ${dir} ${tr >= 0 ? '+' : ''}${tr.toFixed(1)}% over the last 30 days (${fmtEUR(rec.cm.avg30)} → ${fmtEUR(rec.cm.avg1)}).`;
+  }
+  const tail = sentiment === 'BULLISH'
+    ? ' Demand is firm right now — verify at the source before paying the high end.'
+    : sentiment === 'BEARISH'
+    ? ' Pricing is softening — the source links show the live floor.'
+    : ' Pricing is steady. Every figure here links to its public source for independent verification.';
+  return { sentiment,
+    text: `${nm} (${(card.set || '').toUpperCase()} #${card.num}).${spread}${cmBit}${tail}` };
 }
 
 // flat list of every card with its rarity attached
@@ -1891,56 +2010,99 @@ function allCardsWithRarity() {
   return out;
 }
 
-const cardKey = (c) => c.set + '-' + c.num;
-
-// tiny SVG sparkline / line-chart path builder
-function chartPath(hist, w, h, pad) {
-  pad = pad || 6;
-  const min = Math.min(...hist), max = Math.max(...hist), range = (max - min) || 1;
-  return hist.map((v, i) => {
-    const x = pad + (i / (hist.length - 1)) * (w - 2 * pad);
-    const y = (h - pad) - ((v - min) / range) * (h - 2 * pad);
-    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-  }).join(' ');
+// ---- formatting + tiny SVG visuals (real numbers only) ----
+function fmtUSD(n) {
+  return n == null ? '—' : '$' + Number(n).toLocaleString('en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-function chartArea(hist, w, h, pad) {
-  pad = pad || 6;
-  const min = Math.min(...hist), max = Math.max(...hist), range = (max - min) || 1;
-  let d = '';
-  hist.forEach((v, i) => {
-    const x = pad + (i / (hist.length - 1)) * (w - 2 * pad);
-    const y = (h - pad) - ((v - min) / range) * (h - 2 * pad);
-    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-  });
-  d += ` L ${(w - pad).toFixed(1)} ${h - pad} L ${pad} ${h - pad} Z`;
-  return d;
+function fmtEUR(n) {
+  return n == null ? '—' : '€' + Number(n).toLocaleString('en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// low — market — high range track with a marker at the market price
+function rangeBar(low, val, high, w, h) {
+  w = w || 120; h = h || 30;
+  const mid = h / 2;
+  if (low == null || high == null || val == null || high <= low) {
+    return `<svg class="ic-range" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">` +
+      `<line x1="5" y1="${mid}" x2="${w - 5}" y2="${mid}" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/></svg>`;
+  }
+  const t = Math.max(0, Math.min(1, (val - low) / (high - low)));
+  const x = 5 + t * (w - 10);
+  return `<svg class="ic-range" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <line x1="5" y1="${mid}" x2="${w - 5}" y2="${mid}" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="5" y1="${mid}" x2="${x.toFixed(1)}" y2="${mid}" stroke="var(--primary-2)" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="${x.toFixed(1)}" cy="${mid}" r="5" fill="#fff" stroke="var(--primary-2)" stroke-width="2"/>
+  </svg>`;
+}
+
+// 3 REAL Cardmarket points: 30-day avg -> 7-day avg -> 1-day avg
+function trendDots(cm, w, h) {
+  if (!cm || cm.avg30 == null || cm.avg7 == null || cm.avg1 == null) return '';
+  const pts = [cm.avg30, cm.avg7, cm.avg1];
+  const mn = Math.min(...pts), mx = Math.max(...pts), r = (mx - mn) || 1;
+  const up = cm.avg1 >= cm.avg30;
+  const col = up ? 'var(--green)' : 'var(--red)';
+  const xy = pts.map((v, i) => [4 + (i / 2) * (w - 8), (h - 5) - ((v - mn) / r) * (h - 10)]);
+  const d = xy.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  return `<svg class="ic-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2"/>
+    ${xy.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="${col}"/>`).join('')}
+  </svg>`;
+}
+
+function priceBannerHTML() {
+  const s = PRICE_STATE.status;
+  const when = PRICE_STATE.updated
+    ? new Date(PRICE_STATE.updated).toLocaleString('en-US',
+        { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '';
+  let cls = 'load', txt = 'Fetching live prices…';
+  if (s === 'loading') { cls = 'load'; txt = 'Loading live market prices from pokemontcg.io…'; }
+  else if (s === 'ok') { cls = 'ok';
+    txt = `Live prices · TCGplayer &amp; Cardmarket via <a href="https://pokemontcg.io" target="_blank" rel="noopener">pokemontcg.io</a>${when ? ` · synced ${when}` : ''}`; }
+  else if (s === 'stale') { cls = 'warn';
+    txt = `Showing cached prices${when ? ` from ${when}` : ''} — couldn’t reach the live API just now.`; }
+  else if (s === 'error') { cls = 'err';
+    txt = 'Live prices unavailable — showing rarity-based estimates (marked “EST.”). These are not real quotes.'; }
+  return `<div class="price-banner ${cls}"><span class="pb-dot"></span>` +
+    `<span class="pb-txt">${txt}</span>` +
+    `${(s === 'stale' || s === 'error') ? '<button class="pb-retry" id="pbRetry">Retry</button>' : ''}</div>`;
 }
 
 const INTEL = { tab: 'explore', filter: '', rarity: 'all', sort: 'value-desc', compare: [] };
 
 function intelCardTile(card) {
-  const price = cardBasePrice(card);
-  const hist  = cardHistory(card);
-  const st    = cardStats(hist);
-  const up    = st.change >= 0;
+  const rec = getPrice(card);
+  const tr  = priceTrend(rec);
+  const up  = tr == null ? null : tr >= 0;
   const watched = state.watchlist.includes(cardKey(card));
+  const vis = (rec.cm && trendDots(rec.cm, 120, 30)) ||
+              rangeBar(rec.low, rec.value, rec.high, 120, 30);
+  const nm = rec.name || card.name;
+  let src = 'estimate · not a quote';
+  if (!rec.isEst) src = rec.tcgUrl ? 'TCGplayer market price'
+                      : rec.cmUrl  ? 'Cardmarket trend price' : 'live market';
   return `
     <div class="ic-tile" data-key="${cardKey(card)}">
       <div class="ic-img">
-        <img src="${cardImg(card.set, card.num, false)}" alt="${card.name}" loading="lazy" />
+        <img src="${cardImg(card.set, card.num, false)}" alt="${nm}" loading="lazy" />
         <span class="ic-rar ${card.rarity.css}">${card.rarity.label}</span>
         ${watched ? '<span class="ic-watch-flag">WATCHING</span>' : ''}
+        ${rec.isEst ? '<span class="ic-est-flag">EST.</span>' : ''}
       </div>
       <div class="ic-info">
-        <div class="ic-name">${card.name}</div>
+        <div class="ic-name">${nm}</div>
         <div class="ic-set">${(card.set || '').toUpperCase()} #${card.num}</div>
         <div class="ic-price-row">
-          <span class="ic-price">$${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-          <span class="ic-change ${up ? 'up' : 'down'}">${up ? '+' : ''}${st.change.toFixed(1)}%</span>
+          <span class="ic-price">${fmtUSD(rec.value)}</span>
+          ${tr != null
+            ? `<span class="ic-change ${up ? 'up' : 'down'}">${up ? '+' : ''}${tr.toFixed(1)}%</span>`
+            : '<span class="ic-change flat">—</span>'}
         </div>
-        <svg class="ic-spark" viewBox="0 0 120 32" preserveAspectRatio="none">
-          <path d="${chartPath(hist, 120, 32, 3)}" fill="none" stroke="${up ? 'var(--green)' : 'var(--red)'}" stroke-width="1.5"/>
-        </svg>
+        ${vis}
+        <div class="ic-src">${src}</div>
       </div>
     </div>`;
 }
@@ -1953,12 +2115,14 @@ function getFilteredCards() {
   }
   if (INTEL.rarity !== 'all') cards = cards.filter(c => c.rarity.key === INTEL.rarity);
   cards.sort((a, b) => {
-    const pa = cardBasePrice(a), pb = cardBasePrice(b);
+    const ra = getPrice(a), rb = getPrice(b);
+    const pa = ra.value || 0, pb = rb.value || 0;
     if (INTEL.sort === 'value-desc') return pb - pa;
     if (INTEL.sort === 'value-asc')  return pa - pb;
     if (INTEL.sort === 'name')       return a.name.localeCompare(b.name);
     if (INTEL.sort === 'change') {
-      return cardStats(cardHistory(b)).change - cardStats(cardHistory(a)).change;
+      const ta = priceTrend(ra), tb = priceTrend(rb);
+      return (tb == null ? -1e9 : tb) - (ta == null ? -1e9 : ta);
     }
     return 0;
   });
@@ -2000,36 +2164,33 @@ function renderIntel() {
     const sel = INTEL.compare.map(k => pool.find(c => cardKey(c) === k)).filter(Boolean);
     let chart = '';
     if (sel.length) {
-      const W = 760, H = 280, P = 30;
-      const allHist = sel.map(c => cardHistory(c));
-      const gMin = Math.min(...allHist.flat()), gMax = Math.max(...allHist.flat()), gR = (gMax - gMin) || 1;
-      const lineFor = (hist, color) => {
-        const d = hist.map((v, i) => {
-          const x = P + (i / (hist.length - 1)) * (W - 2 * P);
-          const y = (H - P) - ((v - gMin) / gR) * (H - 2 * P);
-          return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-        }).join(' ');
-        return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;
-      };
-      chart = `
-        <svg class="cmp-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-          ${[0,0.25,0.5,0.75,1].map(f=>`<line x1="${P}" y1="${(P+f*(H-2*P)).toFixed(0)}" x2="${W-P}" y2="${(P+f*(H-2*P)).toFixed(0)}" stroke="var(--line)" stroke-width="1"/>`).join('')}
-          ${sel.map((c,i)=>lineFor(allHist[i], palette[i%palette.length])).join('')}
-        </svg>
-        <div class="cmp-legend">
-          ${sel.map((c,i)=>`<span class="cmp-leg"><i style="background:${palette[i%palette.length]}"></i>${c.name} · $${cardBasePrice(c).toLocaleString('en-US',{minimumFractionDigits:2})}</span>`).join('')}
-        </div>`;
+      const recs = sel.map(c => getPrice(c));
+      const max  = Math.max(...recs.map(r => r.value || 0), 1);
+      chart = `<div class="cmp-bars">
+        ${sel.map((c, i) => {
+          const r = recs[i];
+          const pct = ((r.value || 0) / max) * 100;
+          const tr = priceTrend(r);
+          return `<div class="cmp-bar-row">
+            <div class="cmp-bar-name">${r.name || c.name}<span>${(c.set||'').toUpperCase()} #${c.num}</span></div>
+            <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${pct.toFixed(1)}%;background:${palette[i%palette.length]}"></div></div>
+            <div class="cmp-bar-val">${fmtUSD(r.value)}${r.isEst?' <em>est.</em>':''}${tr!=null?` <span class="${tr>=0?'up':'down'}">${tr>=0?'+':''}${tr.toFixed(1)}% 30d</span>`:''}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="cmp-foot">Bars compare current market price (TCGplayer, USD). The 30-day change is the real Cardmarket 1-day vs 30-day average move. Open any card for the full sourced breakdown.</div>`;
     } else {
-      chart = `<div class="ic-empty">Add 2–5 cards below to compare price performance.</div>`;
+      chart = `<div class="ic-empty">Add 2–5 cards below to compare their real current market price.</div>`;
     }
     body.innerHTML = `
       <div class="cmp-wrap">
-        <div class="cmp-head">Add up to 5 cards to compare their 30-day price performance.</div>
+        <div class="cmp-head">Compare up to 5 cards by live market price — every figure is sourced.</div>
         ${chart}
         <div class="cmp-pool" id="cmpPool">
           ${pool.slice(0, 24).map(c => {
             const on = INTEL.compare.includes(cardKey(c));
-            return `<button class="cmp-chip ${on?'on':''}" data-key="${cardKey(c)}">${on?'✓ ':''}${c.name}</button>`;
+            const cn = (PRICE_DATA[cardKey(c)] && PRICE_DATA[cardKey(c)].name) || c.name;
+            return `<button class="cmp-chip ${on?'on':''}" data-key="${cardKey(c)}">${on?'✓ ':''}${cn}</button>`;
           }).join('')}
         </div>
       </div>`;
@@ -2053,48 +2214,54 @@ function renderIntel() {
   else if (INTEL.tab === 'portfolio') {
     const coll = state.collection || [];
     if (!coll.length) {
-      body.innerHTML = `<div class="ic-empty">No cards in your portfolio yet. Rip a pack and <b>Keep</b> a card to start tracking value.</div>`;
+      body.innerHTML = `<div class="ic-empty">No cards in your portfolio yet. Rip a pack and <b>Keep</b> a card to start tracking real value.</div>`;
     } else {
-      // aggregate value + a synthetic portfolio value curve (sum of each card's history)
-      const len = 30;
-      const agg = new Array(len).fill(0);
-      let totalNow = 0;
+      let total = 0, estCount = 0;
+      const byRar = {};
       coll.forEach(c => {
-        const card = { set: c.set, num: c.num, rarity: c.rarity };
-        const h = cardHistory(card, len);
-        h.forEach((v, i) => agg[i] += v);
-        totalNow += cardBasePrice(card);
+        const r = getPrice({ set: c.set, num: c.num, name: c.name, rarity: c.rarity });
+        total += r.value || 0;
+        if (r.isEst) estCount++;
+        const rk = (c.rarity && c.rarity.key) || 'rare';
+        byRar[rk] = (byRar[rk] || 0) + (r.value || 0);
       });
-      const st = cardStats(agg);
-      const up = st.change >= 0;
-      const W = 760, H = 220;
+      const order  = ['secret','ultra','holo','rare','uncommon','common'];
+      const labels = { secret:'SAR', ultra:'Ultra', holo:'Holo', rare:'Rare', uncommon:'Uncommon', common:'Common' };
+      const colors = { secret:'#e52e3a', ultra:'#ffd35a', holo:'#c46bff', rare:'#4eb8ff', uncommon:'#10b981', common:'#6b7a99' };
+      const maxR = Math.max(...Object.values(byRar), 1);
       body.innerHTML = `
         <div class="pf-summary">
           <div class="pf-big">
-            <div class="pf-label">Portfolio Value</div>
-            <div class="pf-value">$${totalNow.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
-            <div class="pf-change ${up?'up':'down'}">${up?'+':''}${st.change.toFixed(1)}% · 30d</div>
+            <div class="pf-label">Portfolio Market Value</div>
+            <div class="pf-value">${fmtUSD(total)}</div>
+            <div class="pf-sub">Sum of current TCGplayer market price${estCount?` · ${estCount} estimated`:''}</div>
           </div>
           <div class="pf-stats">
             <div><div class="pf-s-val">${coll.length}</div><div class="pf-s-lbl">Cards</div></div>
-            <div><div class="pf-s-val">$${st.max.toLocaleString('en-US',{maximumFractionDigits:0})}</div><div class="pf-s-lbl">30d High</div></div>
-            <div><div class="pf-s-val">$${st.min.toLocaleString('en-US',{maximumFractionDigits:0})}</div><div class="pf-s-lbl">30d Low</div></div>
-            <div><div class="pf-s-val">${st.vol.toFixed(1)}%</div><div class="pf-s-lbl">Volatility</div></div>
+            <div><div class="pf-s-val">${fmtUSD(total / coll.length)}</div><div class="pf-s-lbl">Avg / Card</div></div>
+            <div><div class="pf-s-val">${Object.keys(byRar).length}</div><div class="pf-s-lbl">Rarities</div></div>
           </div>
         </div>
-        <svg class="pf-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-          <defs><linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${up?'rgba(16,185,129,0.35)':'rgba(229,46,58,0.35)'}"/>
-            <stop offset="100%" stop-color="transparent"/></linearGradient></defs>
-          <path d="${chartArea(agg, W, H, 10)}" fill="url(#pfGrad)"/>
-          <path d="${chartPath(agg, W, H, 10)}" fill="none" stroke="${up?'var(--green)':'var(--red)'}" stroke-width="2"/>
-        </svg>
-        <div class="ic-grid">${coll.map(c => {
-          const card = { set: c.set, num: c.num, name: c.name, rarity: c.rarity };
-          return intelCardTile(card);
-        }).join('')}</div>`;
+        <div class="pf-break">
+          <div class="pf-break-h">Value by rarity</div>
+          ${order.filter(k => byRar[k]).map(k => {
+            const v = byRar[k], pct = (v / maxR) * 100;
+            return `<div class="pf-break-row">
+              <span class="pf-break-l">${labels[k]}</span>
+              <div class="pf-break-track"><div class="pf-break-fill" style="width:${pct.toFixed(1)}%;background:${colors[k]}"></div></div>
+              <span class="pf-break-v">${fmtUSD(v)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="pf-note">Values are live TCGplayer market prices via pokemontcg.io. Open any card for its verifiable source. No projected or simulated figures are shown.</div>
+        <div class="ic-grid">${coll.map(c =>
+          intelCardTile({ set: c.set, num: c.num, name: c.name, rarity: c.rarity })).join('')}</div>`;
     }
   }
+
+  body.insertAdjacentHTML('afterbegin', priceBannerHTML());
+  const pbR = document.getElementById('pbRetry');
+  if (pbR) pbR.addEventListener('click', () => fetchRealPrices(true));
 
   // wire tile clicks → detail modal
   document.querySelectorAll('.ic-tile').forEach(t => t.addEventListener('click', () => {
@@ -2105,79 +2272,102 @@ function renderIntel() {
 }
 
 function openCardDetail(card) {
-  const hist = cardHistory(card);
-  const st = cardStats(hist);
-  const an = marketAnalysis(card, hist);
-  const price = cardBasePrice(card);
-  const up = st.change >= 0;
+  const rec = getPrice(card);
+  const an  = marketAnalysis(card, rec);
+  const tr  = priceTrend(rec);
+  const up  = tr == null ? null : tr >= 0;
   const watched = state.watchlist.includes(cardKey(card));
-  const W = 640, H = 240;
+  const cm = rec.cm;
+  const updated = rec.tcgUpdated || rec.cmUpdated;
+  const nm = rec.name || card.name;   // real card name for this exact ID
 
-  const conditions = [
-    ['1st Edition Holofoil', 'Near Mint',        price * 1.6],
-    ['1st Edition Holofoil', 'Lightly Played',   price * 1.25],
-    ['Unlimited Holofoil',   'Near Mint',        price],
-    ['Unlimited Holofoil',   'Moderately Played',price * 0.7],
-    ['Normal',               'Near Mint',        price * 0.45],
-  ];
+  const printRows = (rec.prints && rec.prints.length)
+    ? rec.prints.map(p => `
+        <div class="id-pr-row">
+          <span class="id-pr-v">${p.label}</span>
+          <span class="id-pr-c">${fmtUSD(p.low)}</span>
+          <span class="id-pr-c">${fmtUSD(p.market)}</span>
+          <span class="id-pr-c">${fmtUSD(p.high)}</span>
+        </div>`).join('')
+    : `<div class="id-pr-row"><span class="id-pr-v">Rarity estimate</span><span class="id-pr-c">—</span><span class="id-pr-c">${fmtUSD(rec.value)}</span><span class="id-pr-c">—</span></div>`;
+
+  const verifyBtn = rec.tcgUrl
+    ? `<a class="id-verify" href="${rec.tcgUrl}" target="_blank" rel="noopener">Verify on TCGplayer ↗</a>`
+    : `<a class="id-verify" href="https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(nm)}" target="_blank" rel="noopener">Search TCGplayer ↗</a>`;
+  const cmBtn = rec.cmUrl
+    ? `<a class="id-verify alt" href="${rec.cmUrl}" target="_blank" rel="noopener">Cardmarket ↗</a>` : '';
 
   document.getElementById('intelDetail').innerHTML = `
     <div class="id-grid">
       <div class="id-card">
         <img src="${cardImg(card.set, card.num, true)}"
              onerror="this.onerror=null;this.src='${cardImg(card.set, card.num, false)}'"
-             alt="${card.name}" />
+             alt="${nm}" />
         <div class="id-card-actions">
           <button class="id-watch ${watched?'on':''}" id="idWatch">${watched?'♥ Watching':'♡ Watch'}</button>
           <button class="id-portfolio" id="idPortfolio">+ Portfolio</button>
         </div>
-        <a class="id-tcg" href="https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(card.name)}" target="_blank" rel="noopener">View on TCGPlayer ↗</a>
+        ${verifyBtn}
+        ${cmBtn}
       </div>
       <div class="id-main">
         <div class="id-head">
           <div>
-            <div class="id-name">${card.name}</div>
+            <div class="id-name">${nm}</div>
             <div class="id-set">${(card.set||'').toUpperCase()} #${card.num} · <span class="id-rar ${card.rarity.css}">${card.rarity.label}</span></div>
           </div>
           <div class="id-price">
-            <div class="id-price-num">$${price.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
-            <div class="id-price-chg ${up?'up':'down'}">${up?'+':''}${st.change.toFixed(1)}% · 30d</div>
+            <div class="id-price-num">${fmtUSD(rec.value)}</div>
+            <div class="id-price-chg ${up==null?'':up?'up':'down'}">${
+              rec.isEst ? 'rarity estimate'
+              : tr != null ? `${up?'+':''}${tr.toFixed(1)}% · 30d (Cardmarket)`
+              : (rec.printing || 'market price')}</div>
+          </div>
+        </div>
+
+        <div class="id-srcline">${
+          rec.isEst
+            ? 'Live data unavailable — the figure shown is a flagged estimate, not a quote.'
+            : `Source: TCGplayer${rec.printing?` · ${rec.printing}`:''} via pokemontcg.io${updated?` · updated ${updated}`:''}`}</div>
+
+        <div class="id-chart-label">TCGplayer price range (real)</div>
+        <div class="id-rangewrap">
+          ${rangeBar(rec.low, rec.value, rec.high, 560, 40)}
+          <div class="id-range-lbls">
+            <span>Low ${fmtUSD(rec.low)}</span>
+            <span>Market ${fmtUSD(rec.market)}</span>
+            <span>High ${fmtUSD(rec.high)}</span>
           </div>
         </div>
 
         <div class="id-cond">
-          ${conditions.map(([variant, cond, p]) => `
-            <div class="id-cond-row">
-              <span class="id-cond-v">${variant}</span>
-              <span class="id-cond-c">${cond}</span>
-              <span class="id-cond-p">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</span>
-            </div>`).join('')}
+          <div class="id-pr-head"><span>Printing</span><span>Low</span><span>Market</span><span>High</span></div>
+          ${printRows}
         </div>
 
-        <div class="id-chart-label">Price History · ${st.points} data points · last 30 days</div>
-        <svg class="id-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-          <defs><linearGradient id="idGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${up?'rgba(16,185,129,0.30)':'rgba(229,46,58,0.30)'}"/>
-            <stop offset="100%" stop-color="transparent"/></linearGradient></defs>
-          ${[0,0.5,1].map(f=>`<line x1="10" y1="${(10+f*(H-20)).toFixed(0)}" x2="${W-10}" y2="${(10+f*(H-20)).toFixed(0)}" stroke="var(--line)" stroke-width="1"/>`).join('')}
-          <path d="${chartArea(hist, W, H, 10)}" fill="url(#idGrad)"/>
-          <path d="${chartPath(hist, W, H, 10)}" fill="none" stroke="${up?'var(--green)':'var(--red)'}" stroke-width="2"/>
-        </svg>
-
-        <div class="id-stats">
-          <div><div class="id-s-val ${up?'up':'down'}">${up?'+':''}${st.change.toFixed(1)}%</div><div class="id-s-lbl">Change</div></div>
-          <div><div class="id-s-val">${st.vol.toFixed(1)}%</div><div class="id-s-lbl">Volatility</div></div>
-          <div><div class="id-s-val">$${st.max.toFixed(2)}</div><div class="id-s-lbl">High</div></div>
-          <div><div class="id-s-val">$${st.min.toFixed(2)}</div><div class="id-s-lbl">Low</div></div>
-          <div><div class="id-s-val">${st.points}</div><div class="id-s-lbl">Data Pts</div></div>
-        </div>
+        ${cm ? `
+        <div class="id-chart-label">Cardmarket average sale price (real · EUR)</div>
+        <div class="id-cm">
+          <div class="id-cm-grid">
+            <div><div class="id-s-val">${fmtEUR(cm.avg30)}</div><div class="id-s-lbl">30-day avg</div></div>
+            <div><div class="id-s-val">${fmtEUR(cm.avg7)}</div><div class="id-s-lbl">7-day avg</div></div>
+            <div><div class="id-s-val">${fmtEUR(cm.avg1)}</div><div class="id-s-lbl">1-day avg</div></div>
+            <div><div class="id-s-val">${fmtEUR(cm.trend)}</div><div class="id-s-lbl">Trend</div></div>
+            <div><div class="id-s-val">${fmtEUR(cm.low)}</div><div class="id-s-lbl">Low</div></div>
+          </div>
+          ${trendDots(cm, 560, 64)}
+        </div>` : ''}
 
         <div class="id-analysis">
           <div class="id-an-head">
-            <span class="id-an-title">Market Analysis</span>
-            <span class="id-an-tag ${an.sentiment.toLowerCase()}">${an.sentiment}</span>
+            <span class="id-an-title">Market Read</span>
+            <span class="id-an-tag ${an.sentiment.toLowerCase()==='neutral'?'stable':an.sentiment.toLowerCase()}">${an.sentiment}</span>
           </div>
           <p class="id-an-text">${an.text}</p>
+        </div>
+
+        <div class="id-attr">
+          Data: Pokémon TCG API (<a href="https://pokemontcg.io" target="_blank" rel="noopener">pokemontcg.io</a>) — aggregating TCGplayer (USD) &amp; Cardmarket (EUR). Use the buttons on the left to verify this card's price directly at the source.
         </div>
       </div>
     </div>`;
@@ -2196,7 +2386,7 @@ function openCardDetail(card) {
   document.getElementById('idPortfolio').addEventListener('click', () => {
     const exists = state.collection.find(c => c.set === card.set && c.num === card.num);
     if (!exists) {
-      state.collection.unshift({ id: Math.random().toString(36).slice(2,9), set: card.set, num: card.num, name: card.name, rarity: card.rarity, img: cardImg(card.set,card.num,true), imgFallback: cardImg(card.set,card.num,false) });
+      state.collection.unshift({ id: Math.random().toString(36).slice(2,9), set: card.set, num: card.num, name: nm, rarity: card.rarity, img: cardImg(card.set,card.num,true), imgFallback: cardImg(card.set,card.num,false) });
       saveInventory();
     }
     document.getElementById('idPortfolio').textContent = '✓ In Portfolio';
@@ -2237,3 +2427,4 @@ renderCardsGrid();
 renderLiveChat();
 renderIntel();
 runHeroStatsCountUp();
+fetchRealPrices();   // load real, verifiable TCGplayer/Cardmarket prices
