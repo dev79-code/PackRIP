@@ -9,108 +9,58 @@
   <link rel="apple-touch-icon" href="img/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="scanlines"></div>
-  <div class="grid-bg"></div>
-
-  <!-- argus-style central blueprint: vertical line + 2 diagonals + diamond sigil -->
-  <div class="bg-blueprint" aria-hidden="true">
-    <div class="bg-bloom"></div>
-    <svg class="blueprint-svg" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <filter id="laser-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2" result="b1"/>
-          <feGaussianBlur stdDeviation="6" in="SourceGraphic" result="b2"/>
-          <feMerge>
-            <feMergeNode in="b2"/>
-            <feMergeNode in="b1"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
-
-      <g stroke="rgba(43, 212, 255, 0.55)" fill="none" stroke-width="1.4" filter="url(#laser-glow)">
-        <line x1="960" y1="0" x2="960" y2="640"/>
-        <line x1="960" y1="120" x2="0"    y2="1200"/>
-        <line x1="960" y1="120" x2="1920" y2="1200"/>
-        <line x1="960" y1="900" x2="960" y2="1200"/>
-        <line x1="700" y1="770" x2="500" y2="1200"/>
-        <line x1="1220" y1="770" x2="1420" y2="1200"/>
-      </g>
-
-      <g stroke="rgba(43, 212, 255, 0.7)" fill="none" stroke-width="1.4" filter="url(#laser-glow)">
-        <polygon points="960,540 1230,770 960,1000 690,770"/>
-        <line x1="690" y1="770" x2="1230" y2="770"/>
-        <line x1="960" y1="540" x2="960" y2="1000"/>
-        <circle cx="960" cy="770" r="42"/>
-        <circle cx="960" cy="540" r="6"/>
-        <circle cx="690" cy="770" r="6"/>
-        <circle cx="1230" cy="770" r="6"/>
-        <circle cx="960" cy="1000" r="6"/>
-        <circle cx="960" cy="770" r="4" fill="rgba(43, 212, 255, 0.8)"/>
-        <rect x="850" y="660" width="220" height="220"/>
-      </g>
-
-      <g stroke="rgba(43, 212, 255, 0.35)" stroke-width="1">
-        <line x1="380" y1="900" x2="395" y2="920"/>
-        <line x1="540" y1="700" x2="555" y2="720"/>
-        <line x1="700" y1="500" x2="715" y2="520"/>
-        <line x1="1525" y1="900" x2="1540" y2="920"/>
-        <line x1="1365" y1="700" x2="1380" y2="720"/>
-        <line x1="1205" y1="500" x2="1220" y2="520"/>
-      </g>
-
-      <g class="laser-trace" stroke="rgba(124, 255, 203, 1)" fill="none" stroke-width="3" stroke-linecap="round">
-        <line class="lt-1" x1="960"  y1="0"    x2="960"  y2="640"  pathLength="100"/>
-        <line class="lt-2" x1="0"    y1="1200" x2="960"  y2="120"  pathLength="100"/>
-        <line class="lt-3" x1="1920" y1="1200" x2="960"  y2="120"  pathLength="100"/>
-        <line class="lt-4" x1="960"  y1="1200" x2="960"  y2="900"  pathLength="100"/>
-        <line class="lt-5" x1="500"  y1="1200" x2="700"  y2="770"  pathLength="100"/>
-        <line class="lt-6" x1="1420" y1="1200" x2="1220" y2="770"  pathLength="100"/>
-      </g>
-
-      <circle class="sigil-flare" cx="960" cy="770" r="42" fill="rgba(124, 255, 203, 0)" stroke="rgba(124, 255, 203, 1)" stroke-width="2"/>
-    </svg>
-  </div>
-
-  <!-- HUD chrome: corner brackets + side ticks + boot HUD text (argus-style) -->
-  <div class="frame-hud" aria-hidden="true">
-    <span class="hud-bracket tl"></span>
-    <span class="hud-bracket tr"></span>
-    <span class="hud-bracket bl"></span>
-    <span class="hud-bracket br"></span>
-    <span class="hud-tick l"></span>
-    <span class="hud-tick r"></span>
-  </div>
-  <div class="hud-boot" aria-hidden="true">BOOT_OK · PACKRIP · v0.0.1</div>
-
   <!-- ============== TOP NAV ============== -->
   <nav class="topnav">
-    <a class="nav-logo" href="#top">
-      <img class="nav-logo-img" src="img/logo.png" alt="" aria-hidden="true" />
-      <img class="nav-logo-wordmark" src="img/packrip-nav.svg" alt="PackRIP" />
+    <a class="brand" href="#top">
+      <img class="brand-orb" src="img/logo.png" alt="" aria-hidden="true" />
+      <span class="brand-name">PACKRIP</span>
     </a>
-    <ul class="nav-links">
-      <li><a href="#cam">rip cam</a></li>
-      <li><a href="#packs">pack wall</a></li>
-      <li><a href="#hits">hit board</a></li>
-      <li><a href="#marketplace">marketplace</a></li>
-      <li><a href="#how">how it works</a></li>
-    </ul>
-    <div class="nav-actions">
-      <a class="nav-x" href="https://x.com/PackRipSOL" target="_blank" rel="noopener" title="follow @PackRipSOL on X">
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+
+    <div class="nav-pills">
+      <a class="nav-pill" href="#marketplace">
+        <svg class="np-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Marketplace
+        <svg class="np-arrow" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+      </a>
+      <a class="nav-pill" href="#hits">
+        <svg class="np-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Leaderboards
+      </a>
+      <a class="nav-pill" href="#cam">
+        <svg class="np-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/></svg>
+        Rip Cam
+      </a>
+      <a class="nav-pill" href="#packs">
+        <svg class="np-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Pack Wall
+      </a>
+      <a class="nav-pill" href="#portfolio">
+        <svg class="np-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        Card Intel
+      </a>
+      <a class="nav-pill" href="#how">
+        <svg class="np-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        How it works
+      </a>
+    </div>
+
+    <div class="nav-right">
+      <a class="nav-x-btn" href="https://x.com/PackRipSOL" target="_blank" rel="noopener" title="@PackRipSOL">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
           <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
         </svg>
-        <span class="nav-x-handle">@PackRipSOL</span>
       </a>
-      <button class="pixel-btn ghost nav-wallet" id="walletBtn" type="button">
-        <span class="wallet-dot"></span><span class="wallet-label">CONNECT WALLET</span>
+      <button class="connect-pill" id="walletBtn" type="button">
+        <span class="wallet-dot"></span><span class="wallet-label">Connect Wallet</span>
       </button>
-      <a class="pixel-btn primary nav-cta" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP ▶</a>
+      <a class="buy-rip-btn" href="https://pump.fun" target="_blank" rel="noopener">
+        Buy $RIP
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+      </a>
     </div>
   </nav>
 
@@ -126,8 +76,11 @@
       <p class="tagline">tokenized japanese pack rips. live from osaka.</p>
       <p class="hero-sub">real packs · real shop · burned on chain · shipped worldwide</p>
       <div class="hero-cta">
-        <button class="pixel-btn primary big" data-open-rip>▶ TRY A FREE RIP</button>
-        <a href="#cam" class="pixel-btn ghost big">watch the rip cam ▼</a>
+        <button class="pixel-btn primary big" data-open-rip>Try A Free Rip</button>
+        <a href="#cam" class="pixel-btn ghost big">
+          Watch the Rip Cam
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
       </div>
       <div class="hero-stats">
         <div><b id="statPacks">12</b><span>packs ripped</span></div>
@@ -145,7 +98,7 @@
   <!-- ============== LIVE RIP CAM ============== -->
   <section id="cam" class="cam-section">
     <div class="section-head">
-      <h2 class="section-h">▶ THE RIP CAM</h2>
+      <h2 class="section-h">The Rip Cam</h2>
       <p class="section-sub">always on during shop hours · 13:00–22:00 JST · the timezone is a feature</p>
     </div>
 
@@ -154,10 +107,15 @@
       <div class="cam-overlay">
         <div class="cam-top">
           <span class="live-badge"><span class="dot"></span> LIVE · OSAKA</span>
-          <span class="cam-meta">👁 <span id="viewerCount">1,247</span> watching</span>
+          <span class="cam-meta">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span id="viewerCount">1,247</span> watching
+          </span>
         </div>
         <div class="cam-center">
-          <div class="play-icon">▶</div>
+          <div class="play-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" stroke="none"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          </div>
         </div>
         <div class="cam-bottom">
           <div class="cam-handle">@cypherchad</div>
@@ -169,9 +127,9 @@
 
     <div class="cam-side">
       <div class="queue-box">
-        <div class="queue-label">▶ UP NEXT</div>
+        <div class="queue-label">Up Next</div>
         <ol class="queue-list" id="queueList"></ol>
-        <button class="pixel-btn primary" data-open-rip>JUMP THE QUEUE ▶</button>
+        <button class="pixel-btn primary" data-open-rip>Jump The Queue</button>
       </div>
     </div>
   </section>
@@ -185,10 +143,10 @@
   <section id="rip" class="rip-feature">
     <div class="rip-feature-card">
       <div class="rip-feature-left">
-        <span class="badge-fire">▶ THE MAIN EVENT</span>
+        <span class="badge-fire">The Main Event</span>
         <h2 class="rip-h">RIP A PACK<br/><span>RIGHT NOW.</span></h2>
         <p>real Pokémon TCG art. real pull odds. animated rip, holo sheen, sparkle on hits. no wallet. no signup.</p>
-        <button class="pixel-btn primary big" data-open-rip>▶ START FREE RIP</button>
+        <button class="pixel-btn primary big" data-open-rip>Start Free Rip</button>
         <p class="rip-meta">5 cards · localStorage roster · come back anytime</p>
       </div>
       <div class="rip-feature-right">
@@ -204,7 +162,7 @@
   <!-- ============== PACK WALL ============== -->
   <section id="packs" class="packs-section">
     <div class="section-head">
-      <h2 class="section-h">▶ PACK WALL</h2>
+      <h2 class="section-h">Pack Wall</h2>
       <p class="section-sub">live inventory from the osaka shop · prices match the loose-pack market</p>
       <p class="rate-pill">RATE · 1,000 $RIP burned per $1 USD market value · + 0.05 SOL flat fee</p>
     </div>
@@ -224,7 +182,7 @@
   <!-- ============== HIT BOARD ============== -->
   <section id="hits" class="hits-section">
     <div class="section-head">
-      <h2 class="section-h">▶ HIT BOARD</h2>
+      <h2 class="section-h">Hit Board</h2>
       <p class="section-sub">top pulls this week · clipped, watermarked, on chain</p>
     </div>
 
@@ -237,30 +195,136 @@
     <div class="hit-list" id="hitList"></div>
   </section>
 
-  <!-- ============== MARKETPLACE (coming soon) ============== -->
+  <!-- ============== MARKETPLACE (Collector-Crypt-style split-screen) ============== -->
   <section id="marketplace" class="marketplace-section">
     <div class="section-head">
-      <h2 class="section-h">▶ MARKETPLACE</h2>
-      <p class="section-sub">peer-to-peer holder marketplace · listings, bids, vault transfers · <b class="ms-soon">COMING SOON</b></p>
+      <h2 class="section-h">Marketplace</h2>
+      <p class="section-sub">browse the catalog · buy a sealed pack · open it live</p>
     </div>
 
-    <div class="marketplace-banner">
-      <span class="ms-badge">v0.0.2</span>
-      <span class="ms-msg">your pulls listed for sale appear here · paid in $RIP or SOL · settled on chain</span>
+    <!-- category strip -->
+    <div class="category-strip">
+      <button class="cat-chip cat-all active" data-cat="all">
+        <span class="cat-icon">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <span class="cat-label">All</span>
+      </button>
+      <div class="cat-list" id="categoryList"></div>
     </div>
 
-    <div class="hit-list" id="marketplaceList"></div>
+    <!-- split-screen: card grid + pinned vending machine + open panel -->
+    <div class="market-split">
+      <!-- LEFT: cards in the active pack rendered as graded slabs -->
+      <div class="cards-pane">
+        <div class="cards-grid" id="cardsGrid"></div>
+      </div>
+
+      <!-- RIGHT: vending machine + open panel -->
+      <aside class="pack-pane" id="packPane">
+        <div class="machine">
+          <img class="machine-img" id="machineImg" src="img/pack-sv3pt5.jpg" alt="selected pack" />
+        </div>
+
+        <div class="auth-row">
+          <span class="auth-tick">
+            <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          Guaranteed Authenticity
+          <span class="auth-value-icon" title="expected value">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </span>
+        </div>
+
+        <div class="pack-row">
+          <div class="pack-info">
+            <h3 class="pack-title-mp" id="packTitle">Pokémon 151</h3>
+            <p class="pack-sub-mp" id="packSub">Japan · Kanto 151</p>
+          </div>
+          <div class="pack-value">
+            <div class="pv-num" id="packValue">$10.00</div>
+            <div class="pv-label">Expected Value</div>
+          </div>
+        </div>
+
+        <div class="open-row">
+          <button class="open-btn" id="openBtn">Sign In to Open</button>
+          <div class="turbo">
+            <span class="turbo-label">Turbo <span class="turbo-info">ⓘ</span></span>
+            <label class="turbo-toggle">
+              <input type="checkbox" id="turboToggle" />
+              <span class="turbo-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="freepack-row">
+          <div class="fp-circle">
+            <svg viewBox="0 0 36 36" width="48" height="48">
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#2a2a35" stroke-width="3"/>
+            </svg>
+          </div>
+          <div class="fp-info">
+            <div class="fp-label">Free packs</div>
+            <div class="fp-count" id="freePackCount">0</div>
+          </div>
+          <button class="connect-btn" id="connectBtn">
+            <svg class="cn-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            Connect Wallet
+          </button>
+        </div>
+        <p class="fp-note">100,000 points until next free pack</p>
+
+        <div class="pack-tabs">
+          <button class="pack-tab active" data-tab="contents">Pack contains</button>
+          <button class="pack-tab" data-tab="buyback">Instant buyback</button>
+          <button class="pack-tab" data-tab="bigwin">Big win chance</button>
+        </div>
+
+        <div class="pack-tab-body" id="packTabBody">
+          <div class="contents-grid" id="contentsGrid"></div>
+        </div>
+      </aside>
+    </div>
   </section>
+
+  <!-- ============== CARD INTELLIGENCE DASHBOARD ============== -->
+  <section id="portfolio" class="intel-section">
+    <div class="section-head">
+      <h2 class="section-h">Card Intelligence</h2>
+      <p class="section-sub">real-time price tracking · watchlist · portfolio analytics · AI market insight</p>
+    </div>
+
+    <div class="intel-tabs">
+      <button class="intel-tab active" data-itab="explore">Explore</button>
+      <button class="intel-tab" data-itab="compare">Compare</button>
+      <button class="intel-tab" data-itab="watchlist">Watchlist</button>
+      <button class="intel-tab" data-itab="portfolio">Portfolio</button>
+    </div>
+
+    <div class="intel-body" id="intelBody"></div>
+  </section>
+
+  <!-- card detail modal for the intelligence dashboard -->
+  <div class="intel-modal" id="intelModal" aria-hidden="true">
+    <div class="intel-modal-inner">
+      <button class="intel-modal-close" id="intelModalClose" aria-label="close">×</button>
+      <div class="intel-detail" id="intelDetail"></div>
+    </div>
+  </div>
 
   <!-- ============== POST-RIP OPTIONS ============== -->
   <section class="postrip-section">
     <div class="section-head">
-      <h2 class="section-h">▶ AFTER THE RIP</h2>
+      <h2 class="section-h">After The Rip</h2>
       <p class="section-sub">choose what happens to your cards. one click. on chain.</p>
     </div>
 
     <div class="postrip-grid">
       <div class="postrip-card">
+        <div class="pr-icon-tag">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
         <div class="pr-img-wrap">
           <img class="pr-img" src="img/postrip-ship.webp" alt="hand sliding a Pokémon card into a yellow padded envelope" onerror="this.style.opacity=0" />
         </div>
@@ -269,6 +333,9 @@
         <div class="pr-tag">most popular</div>
       </div>
       <div class="postrip-card">
+        <div class="pr-icon-tag">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
         <div class="pr-img-wrap">
           <img class="pr-img" src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?w=600&auto=format&fit=crop&q=80" alt="bank vault door" onerror="this.style.opacity=0" />
         </div>
@@ -277,6 +344,9 @@
         <div class="pr-tag">collectors</div>
       </div>
       <div class="postrip-card">
+        <div class="pr-icon-tag">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><line x1="13" y1="5" x2="13" y2="7"/><line x1="13" y1="11" x2="13" y2="13"/><line x1="13" y1="17" x2="13" y2="19"/></svg>
+        </div>
         <div class="pr-img-wrap">
           <img class="pr-img" src="img/postrip-burn.avif" alt="burn it forward" onerror="this.style.opacity=0" />
         </div>
@@ -290,7 +360,7 @@
   <!-- ============== HOW IT WORKS ============== -->
   <section id="how" class="how-section">
     <div class="section-head">
-      <h2 class="section-h">▶ HOW IT WORKS</h2>
+      <h2 class="section-h">How It Works</h2>
       <p class="section-sub">six steps. zero friction. one shop in osaka.</p>
     </div>
 
@@ -343,7 +413,7 @@
   <!-- ============== TOKENOMICS ============== -->
   <section id="tokenomics" class="tokenomics-section">
     <div class="section-head">
-      <h2 class="section-h">▶ $RIP</h2>
+      <h2 class="section-h">$RIP</h2>
       <p class="section-sub">every rip burns supply. forever. clean as it gets.</p>
     </div>
 
@@ -385,14 +455,17 @@
   <!-- ============== THE SHOP / OWNER ============== -->
   <section class="owner-section">
     <div class="section-head">
-      <h2 class="section-h">▶ THE SHOP</h2>
+      <h2 class="section-h">The Shop</h2>
       <p class="section-sub">a real shop. a real person. a global customer base.</p>
     </div>
 
     <div class="owner-card">
       <div class="owner-photo">
         <img src="img/owner-cards.jpeg" alt="kenji holding a card display in the osaka shop" />
-        <div class="owner-tag">📍 OSAKA · NIPPONBASHI</div>
+        <div class="owner-tag">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          OSAKA · NIPPONBASHI
+        </div>
       </div>
       <div class="owner-bio">
         <h3>kenji-san</h3>
@@ -401,7 +474,7 @@
         <p class="owner-quote">"i was pricing graded mew for one tourist a week. now i'm ripping for sao paulo at 3am their time. this is what the shop was supposed to be."</p>
         <div class="owner-stats">
           <div><b>12,304</b><span>packs ripped on cam</span></div>
-          <div><b>4.9★</b><span>shipping rating · 2.1k reviews</span></div>
+          <div><b>4.9</b><span>shipping rating · 2.1k reviews</span></div>
           <div><b>5 yr</b><span>shop established</span></div>
           <div><b>43</b><span>countries shipped to</span></div>
         </div>
@@ -412,7 +485,7 @@
   <!-- ============== INSIDE THE SHOP — REAL PHOTOS ============== -->
   <section class="shop-gallery-section">
     <div class="section-head">
-      <h2 class="section-h">▶ INSIDE THE SHOP</h2>
+      <h2 class="section-h">Inside The Shop</h2>
       <p class="section-sub">real photos · real shelves · real stock · osaka, japan</p>
     </div>
 
@@ -464,7 +537,10 @@
       <h2>READY TO RIP?</h2>
       <p>buy $RIP. burn it. watch it rip live. ship the cards home.</p>
       <div class="footer-cta-row">
-        <a class="pixel-btn primary big" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP ▶</a>
+        <a class="pixel-btn primary big" href="https://pump.fun" target="_blank" rel="noopener">
+          Buy $RIP
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        </a>
         <button class="pixel-btn ghost big" data-open-rip>try a free rip first</button>
       </div>
       <div class="contract">
@@ -510,6 +586,25 @@
     </div>
   </footer>
 
+  <!-- ============== LIVE CHAT (collapsed) ============== -->
+  <div class="livechat" id="livechat">
+    <button class="lc-bar" id="lcToggle">
+      <span class="lc-dot"></span>
+      <span class="lc-label">Live Chat</span>
+      <span class="lc-count" id="lcCount">4</span>
+      <svg class="lc-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+    </button>
+    <div class="lc-panel" id="lcPanel">
+      <div class="lc-messages" id="lcMessages">
+        <div class="lc-empty">No messages yet. Say hi!</div>
+      </div>
+      <div class="lc-input-row">
+        <input type="text" class="lc-input" placeholder="Say something..." id="lcInput" />
+        <button class="lc-send" id="lcSend">▸</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============== RIP MODAL (the main feature) ============== -->
   <div id="ripModal" class="modal" aria-hidden="true">
     <button class="modal-close" id="modalClose" aria-label="close">×</button>
@@ -517,7 +612,7 @@
     <!-- PACK SELECT -->
     <section id="screen-select" class="screen active">
       <header class="topbar">
-        <div class="modal-crumb">▶ FREE SIM · pick a pack</div>
+        <div class="modal-crumb">Free Sim · pick a pack</div>
         <div class="coin">
           <span class="coin-icon">¤</span>
           <span id="coinCount">9999</span>
@@ -535,30 +630,88 @@
     </section>
 
     <!-- RIP -->
-    <section id="screen-rip" class="screen">
-      <div class="rip-stage">
-        <div class="rip-shadow"></div>
-        <div class="pack-3d" id="packStage">
-          <div class="pack-face front" id="packFront"></div>
-          <div class="pack-tear" id="packTear"></div>
+    <section id="screen-rip" class="screen gacha-screen">
+      <!-- Stage A: gacha machine with iridescent holo pack inside -->
+      <div class="gacha-stage" id="gachaStage">
+        <div class="gacha-machine" id="gachaMachine">
+          <div class="gm-header">
+            <span class="gm-pack-name" id="gmPackName">PACK</span>
+          </div>
+          <div class="gm-window">
+            <div class="gm-holo" id="gmHolo">
+              <div class="gm-holo-pr">PR</div>
+            </div>
+          </div>
+          <div class="gm-base">
+            <div class="gm-buttons">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="gm-slot"></div>
+          </div>
+          <div class="gm-knob"></div>
         </div>
-        <button class="pixel-btn primary big rip-btn" id="ripBtn">▼ RIP IT ▼</button>
-        <p class="rip-hint" id="ripHint">mash to tear it open</p>
+        <!-- particle burst container — populated by JS during reveal -->
+        <div class="particle-burst" id="particleBurst" aria-hidden="true"></div>
+        <!-- light beams / god rays radiating during burst -->
+        <div class="light-beams" id="lightBeams" aria-hidden="true"></div>
+        <!-- full-screen white flash at peak of burst -->
+        <div class="gacha-flash" id="gachaFlash" aria-hidden="true"></div>
+        <!-- overhead spotlight cone illuminating the card during reveal -->
+        <div class="spot-cone" id="spotCone" aria-hidden="true"></div>
+        <!-- giant rarity callout text -->
+        <div class="rarity-callout" id="rarityCallout">RARE</div>
+        <!-- spotlight reveal: real card materializes here -->
+        <div class="card-spotlight" id="cardSpotlight">
+          <div class="card-spot-glow"></div>
+          <img class="card-spot-img" id="cardSpotImg" src="" alt="" />
+          <div class="card-spot-rarity" id="cardSpotRarity"></div>
+        </div>
       </div>
+
+      <!-- Stage B: buyback offer panel (slides in after reveal) -->
+      <div class="buyback-panel" id="buybackPanel" aria-hidden="true">
+        <div class="bb-card-info">
+          <div class="bb-card-name" id="bbCardName">—</div>
+          <div class="bb-stats">
+            <div class="bb-stat"><div class="bb-stat-val" id="bbGrade">PSA 10</div><div class="bb-stat-label">PSA Grade</div></div>
+            <div class="bb-stat"><div class="bb-stat-val" id="bbValue">$0</div><div class="bb-stat-label">CL Value</div></div>
+            <div class="bb-stat"><div class="bb-stat-val" id="bbPulledFrom">PACK</div><div class="bb-stat-label">Pulled From</div></div>
+          </div>
+        </div>
+        <button class="bb-sell-btn" id="bbSellBtn">
+          Sell For <span id="bbSellPrice">$0</span><br/>
+          <small>90% Buyback Offer</small>
+        </button>
+        <button class="bb-action-btn" id="bbBuyAnotherBtn">Buy Another Pack</button>
+        <button class="bb-action-btn ghost" id="bbViewCollectionBtn">View Card In Collection</button>
+        <button class="bb-action-btn ghost" id="bbViewAllPullsBtn">See all <span id="bbAllPullsCount">5</span> pulls</button>
+      </div>
+
+      <!-- skip button (bottom-right) -->
+      <button class="gacha-skip" id="gachaSkip">
+        Skip
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" stroke="none" style="margin-left:4px"><polygon points="5 4 13 12 5 20 5 4"/><rect x="15" y="4" width="3" height="16"/></svg>
+      </button>
     </section>
 
-    <!-- REVEAL -->
+    <!-- REVEAL — kept hidden, now used only for the legacy "see all pulls" view -->
     <section id="screen-reveal" class="screen">
       <header class="topbar">
         <div class="reveal-progress">
           <span id="revealCount">1</span> / <span id="revealTotal">5</span>
         </div>
-        <button class="pixel-btn ghost" id="skipBtn">skip ▶▶</button>
+        <button class="pixel-btn ghost" id="skipBtn">
+          Skip
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" stroke="none" style="margin-left:4px"><polygon points="5 4 13 12 5 20 5 4"/><rect x="15" y="4" width="3" height="16"/></svg>
+        </button>
       </header>
 
       <div class="card-stage">
         <div class="card-deck" id="cardDeck"></div>
-        <button class="pixel-btn primary next-btn" id="nextCardBtn">NEXT ▶</button>
+        <button class="pixel-btn primary next-btn" id="nextCardBtn">
+          Next
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
       </div>
 
       <div class="dialog-box">
@@ -574,14 +727,23 @@
       <div class="summary-grid" id="summaryGrid"></div>
 
       <div class="postrip-mini">
-        <div class="pr-mini">📦 SHIP <small>$5</small></div>
-        <div class="pr-mini">🔒 VAULT <small>0 fee</small></div>
-        <div class="pr-mini">▶ BURN FWD <small>raffle</small></div>
+        <div class="pr-mini">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          SHIP <small>$5</small>
+        </div>
+        <div class="pr-mini">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          VAULT <small>0 fee</small>
+        </div>
+        <div class="pr-mini">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+          BURN FWD <small>raffle</small>
+        </div>
         <p class="pr-mini-note">in the live shop you'd choose now. in the sim, all cards bank to your roster.</p>
       </div>
 
       <div class="summary-actions">
-        <button class="pixel-btn primary" id="ripAgainBtn">▶ RIP AGAIN</button>
+        <button class="pixel-btn primary" id="ripAgainBtn">Rip Again</button>
         <button class="pixel-btn ghost" data-go="select">change pack</button>
         <button class="pixel-btn ghost" id="viewRosterBtn">roster (<span id="rosterCount">0</span>)</button>
       </div>
@@ -605,6 +767,6 @@
 
   <div class="flash" id="flash"></div>
 
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=14"></script>
 </body>
 </html>
