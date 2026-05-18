@@ -820,9 +820,9 @@ function showFreeUsedToast(pack, payWith) {
       <div class="ft-actions">
         ${pack ? `
           <button class="pixel-btn primary" id="ftPaySol">PAY ${solPrice} SOL</button>
-          <a class="pixel-btn ghost" href="https://pump.fun" target="_blank" rel="noopener">BUY $RIP</a>
+          <a class="pixel-btn ghost" data-buy-rip href="${buyUrl()}" target="_blank" rel="noopener">BUY $RIP</a>
         ` : `
-          <a class="pixel-btn primary" href="https://pump.fun" target="_blank" rel="noopener">Buy $RIP</a>
+          <a class="pixel-btn primary" data-buy-rip href="${buyUrl()}" target="_blank" rel="noopener">Buy $RIP</a>
         `}
         ${hasCollection ? '<button class="pixel-btn ghost" id="ftRoster">view collection</button>' : ''}
         ${state.wallet ? '' : '<button class="pixel-btn ghost" id="ftWallet">connect wallet</button>'}
@@ -956,6 +956,7 @@ async function playGachaSequence(pack) {
   state.revealIdx = 0;
   state.freeUsed = true;
   save();
+  if (typeof updateOpenBtn === 'function') updateOpenBtn();
 
   // pick BEST pull to feature in the spotlight
   let bestRank = -1;
@@ -1506,7 +1507,17 @@ function shortAddr(a) {
   return a.slice(0, 4) + '…' + a.slice(-4);
 }
 
+// keep the right-panel open button honest about what it actually does
+function updateOpenBtn() {
+  const b = document.getElementById('openBtn');
+  if (!b) return;
+  if (!state.freeUsed)                               b.textContent = 'Open Free Pack';
+  else if (state.packs && state.packs.length > 0)    b.textContent = 'Open Pack';
+  else                                               b.textContent = 'Rip Again';
+}
+
 function updateWalletUI() {
+  updateOpenBtn();
   if (!walletBtn) return;
   const label = walletBtn.querySelector('.wallet-label');
   if (state.wallet) {
@@ -1721,8 +1732,15 @@ function renderLiveChat() {
   if (openBtn) openBtn.addEventListener('click', () => {
     const pack = PACKS.find(p => p.id === activePackId);
     if (!pack) return;
+    const payWith = state.wallet ? 'sol' : 'free';
+    // same gate as the Pack Wall: first sim rip is free, then route
+    // through the paid / "free rip used" flow instead of silently re-ripping
+    if (state.freeUsed && (!state.packs || state.packs.length === 0)) {
+      showFreeUsedToast(pack, payWith);
+      return;
+    }
     state.selectedPackId = activePackId;
-    state.lastPayWith = state.wallet ? 'sol' : 'free';
+    state.lastPayWith = payWith;
     openRipModal();
     setupRipScreen(pack);
     showScreen('rip');
@@ -2483,3 +2501,137 @@ fetchRealPrices();   // load real, verifiable TCGplayer/Cardmarket prices
     els.forEach(e => { if (!e.classList.contains('in')) reveal(e, false); });
   }, 2500);
 })();
+
+// ============================================================
+// ===== $RIP + SOL LIVE MARKET =====
+//   SOL/USD is live now (CoinGecko). $RIP goes live the moment
+//   you paste the token mint into TOKEN.CA — every Buy button,
+//   the CA line, explorer links and the Tokenomics ticker flip
+//   from "pre-launch" to real DexScreener data automatically.
+//   Nothing is fabricated before launch.
+// ============================================================
+const TOKEN = {
+  CA: '',          // <-- paste the $RIP mint address here at launch
+  SYMBOL: 'RIP',
+};
+const buyUrl    = () => TOKEN.CA ? `https://pump.fun/coin/${TOKEN.CA}` : 'https://pump.fun';
+const dexUrl    = () => TOKEN.CA ? `https://dexscreener.com/solana/${TOKEN.CA}` : null;
+const solscanUrl= () => TOKEN.CA ? `https://solscan.io/token/${TOKEN.CA}` : null;
+
+const MARKET = { sol: null, rip: null, status: TOKEN.CA ? 'loading' : 'prelaunch', updated: 0 };
+
+const SOL_CACHE = 'packrip_sol_v1', SOL_TTL = 5 * 60 * 1000;
+const RIP_CACHE = 'packrip_rip_v1', RIP_TTL = 90 * 1000;
+
+async function fetchSolPrice() {
+  try {
+    const c = JSON.parse(localStorage.getItem(SOL_CACHE) || 'null');
+    if (c && c.t && c.v) MARKET.sol = c.v;                 // serve cache first
+    if (!c || Date.now() - c.t >= SOL_TTL) {
+      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+      if (r.ok) {
+        const j = await r.json();
+        const v = j && j.solana && j.solana.usd;
+        if (v) { MARKET.sol = v; localStorage.setItem(SOL_CACHE, JSON.stringify({ t: Date.now(), v })); }
+      }
+    }
+  } catch (e) { /* keep cached/last value */ }
+  return MARKET.sol;
+}
+
+async function fetchRipMarket() {
+  if (!TOKEN.CA) { MARKET.status = 'prelaunch'; return null; }
+  try {
+    const c = JSON.parse(localStorage.getItem(RIP_CACHE) || 'null');
+    if (c && c.t && c.v && Date.now() - c.t < RIP_TTL) {
+      MARKET.rip = c.v; MARKET.status = 'live'; return c.v;
+    }
+    const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN.CA}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const pairs = (j && j.pairs) || [];
+    if (!pairs.length) { MARKET.status = MARKET.rip ? 'live' : 'pending'; return MARKET.rip; }
+    pairs.sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0));
+    const p = pairs[0];
+    const v = {
+      priceUsd: p.priceUsd != null ? +p.priceUsd : null,
+      priceSol: p.priceNative != null ? +p.priceNative : null,
+      mcap: p.marketCap || p.fdv || null,
+      fdv:  p.fdv || null,
+      ch24: p.priceChange && p.priceChange.h24 != null ? +p.priceChange.h24 : null,
+      vol24: p.volume && p.volume.h24 != null ? +p.volume.h24 : null,
+      url: p.url || dexUrl(),
+    };
+    MARKET.rip = v; MARKET.status = 'live'; MARKET.updated = Date.now();
+    localStorage.setItem(RIP_CACHE, JSON.stringify({ t: Date.now(), v }));
+    return v;
+  } catch (e) {
+    MARKET.status = MARKET.rip ? 'live' : 'error';
+    return MARKET.rip;
+  }
+}
+
+function fmtTokenPrice(n) {
+  if (n == null) return '—';
+  if (n >= 1) return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  return '$' + Number(n).toPrecision(3);
+}
+function fmtBig(n) {
+  if (n == null) return '—';
+  const a = Math.abs(n);
+  if (a >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+  return '$' + Math.round(n);
+}
+
+function applyMarket() {
+  // 1. every Buy button -> the token's pump.fun page (or generic pre-launch)
+  document.querySelectorAll('[data-buy-rip]').forEach(a => { a.href = buyUrl(); });
+
+  // 2. CA line + explorer links
+  const ca = document.getElementById('caCode');
+  if (ca) ca.textContent = TOKEN.CA || 'revealed at launch · pump.fun';
+  const lnkDex = document.getElementById('lnkDex');
+  const lnkC   = document.getElementById('lnkContract');
+  if (lnkDex && dexUrl()) {
+    lnkDex.href = dexUrl(); lnkDex.target = '_blank'; lnkDex.rel = 'noopener';
+    lnkDex.textContent = 'dexscreener';
+  }
+  if (lnkC && solscanUrl()) {
+    lnkC.href = solscanUrl(); lnkC.target = '_blank'; lnkC.rel = 'noopener';
+    lnkC.textContent = 'contract';
+  }
+
+  // 3. Tokenomics live ticker
+  const box = document.getElementById('tkLive');
+  if (box) {
+    if (MARKET.status === 'prelaunch') {
+      box.innerHTML = `<span class="tkl-dot pre"></span>
+        <span class="tkl-msg">$RIP launches on <a href="${buyUrl()}" target="_blank" rel="noopener">pump.fun</a> — live price &amp; market cap appear here the moment it's tradable. No placeholder numbers.</span>`;
+    } else if (MARKET.rip) {
+      const r = MARKET.rip, up = (r.ch24 || 0) >= 0;
+      box.innerHTML = `<span class="tkl-dot live"></span>
+        <span class="tkl-k">$RIP</span>
+        <span class="tkl-v">${fmtTokenPrice(r.priceUsd)}</span>
+        ${r.ch24 != null ? `<span class="tkl-ch ${up ? 'up' : 'down'}">${up ? '+' : ''}${r.ch24.toFixed(1)}% 24h</span>` : ''}
+        <span class="tkl-s">MC ${fmtBig(r.mcap)}</span>
+        ${r.vol24 != null ? `<span class="tkl-s">Vol ${fmtBig(r.vol24)}</span>` : ''}
+        ${MARKET.sol ? `<span class="tkl-s">SOL $${MARKET.sol.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>` : ''}
+        <a class="tkl-src" href="${r.url || dexUrl()}" target="_blank" rel="noopener">DexScreener ↗</a>`;
+    } else {
+      box.innerHTML = `<span class="tkl-dot pre"></span>
+        <span class="tkl-msg">Fetching live $RIP market… meanwhile, <a href="${buyUrl()}" target="_blank" rel="noopener">view on pump.fun ↗</a></span>`;
+    }
+  }
+}
+
+async function refreshMarket() {
+  await fetchSolPrice();
+  await fetchRipMarket();
+  applyMarket();
+}
+
+applyMarket();          // paint correct state immediately (pre-launch safe)
+refreshMarket();        // SOL live now; $RIP live once TOKEN.CA is set
+setInterval(() => { if (!document.hidden) refreshMarket(); }, 90 * 1000);
