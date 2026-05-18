@@ -70,6 +70,7 @@ a { color: inherit; text-decoration: none; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--txt); flex-shrink: 0; }
 .brand-orb { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: #000; object-fit: cover; }
 .brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+.brand-wordmark { display: block; height: 26px; width: auto; }
 
 .nav-pills {
   display: flex;
@@ -187,9 +188,8 @@ section { padding: 64px 24px; scroll-margin-top: 60px; }
 .logo.logo-svg { display: block; margin: 0 auto 18px; text-align: center; font-size: 0; }
 .logo-img {
   display: block; margin: 0 auto;
-  width: auto;
-  height: clamp(140px, 28vh, 280px);
-  max-width: min(94vw, 540px);
+  width: min(92vw, 620px);
+  height: auto;
   filter: drop-shadow(0 0 30px rgba(112,18,178,0.4));
 }
 
