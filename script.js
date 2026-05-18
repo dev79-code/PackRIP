@@ -2428,3 +2428,58 @@ renderLiveChat();
 renderIntel();
 runHeroStatsCountUp();
 fetchRealPrices();   // load real, verifiable TCGplayer/Cardmarket prices
+
+// ---------- CRAFT: restrained scroll-reveal (resilient) ----------
+// Subtle fade/rise on section headers + static marketing blocks.
+// Hard rule: content must NEVER be permanently invisible. The
+// observer only adds polish; multiple fallbacks guarantee reveal.
+(function craftReveal() {
+  const reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+
+  document.documentElement.classList.add('js-reveal');
+
+  const sel = '.section-head, .rip-feature-card, .postrip-card, ' +
+              '.how-step, .tok-card, .owner-card, [data-reveal]';
+  const els = Array.from(document.querySelectorAll(sel))
+    .filter(e => !e.closest('.rip-overlay'));
+  els.forEach(e => e.setAttribute('data-reveal', ''));
+
+  const reveal = (el, stagger) => {
+    if (el.classList.contains('in')) return;
+    if (stagger) {
+      const sibs = el.parentElement
+        ? Array.from(el.parentElement.querySelectorAll(':scope > [data-reveal]'))
+        : [el];
+      el.style.transitionDelay = Math.min(Math.max(sibs.indexOf(el), 0), 6) * 70 + 'ms';
+    }
+    el.classList.add('in');
+  };
+
+  // anything already on/near screen at load: show immediately (no flash)
+  const onScreen = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.top < (window.innerHeight || 0) * 0.95 && r.bottom > 0;
+  };
+  els.forEach(e => { if (onScreen(e)) reveal(e, false); });
+
+  const io = new IntersectionObserver((entries, obs) => {
+    entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      reveal(en.target, true);
+      obs.unobserve(en.target);
+    });
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0 });
+  els.forEach(e => { if (!e.classList.contains('in')) io.observe(e); });
+
+  // safety net 1: on full load, sweep anything now in view
+  window.addEventListener('load', () =>
+    els.forEach(e => { if (onScreen(e)) reveal(e, false); }), { once: true });
+
+  // safety net 2: if anything is still hidden after 2.5s (observer
+  // never fired — odd scroll container, anchor jump, etc.) just show it
+  setTimeout(() => {
+    els.forEach(e => { if (!e.classList.contains('in')) reveal(e, false); });
+  }, 2500);
+})();
