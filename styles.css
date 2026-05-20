@@ -3080,3 +3080,181 @@ svg[stroke="currentColor"] {
             backdrop-filter: none;
   }
 }
+
+/* ============================================================
+   ===== APPLE REFINEMENT PASS — restraint over shine =====
+   ============================================================
+   Apple Tahoe's "liquid glass" is quiet: heavy frost, a single
+   soft top edge, neutral shadows, gentle motion. Strip the
+   exaggerated highlights, drop-shadows and neon glows.
+*/
+:root {
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);   /* iOS standard */
+  --edge-top:  inset 0 1px 0 rgba(255,255,255,0.10);
+  --edge-top-strong: inset 0 1px 0 rgba(255,255,255,0.18);
+  --hairline:  rgba(255,255,255,0.08);
+  --hairline-2:rgba(255,255,255,0.14);
+  --soft-shadow: 0 4px 14px rgba(0,0,0,0.22);
+}
+
+/* Topnav: heavier frost, single hairline, no inset glare */
+.topnav {
+  background: rgba(14,14,21,0.62);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+          backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid var(--hairline);
+  box-shadow: none;
+}
+
+/* Pills: one soft top edge, neutral shadow, no scale on hover */
+.nav-pill,
+.nav-x-btn,
+.connect-pill {
+  background: rgba(255,255,255,0.045);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--edge-top);
+  border-radius: 12px;
+  transition: background 0.25s var(--ease-soft),
+              border-color 0.25s var(--ease-soft),
+              transform 0.35s var(--ease-soft);
+}
+.nav-pill:hover,
+.nav-x-btn:hover,
+.connect-pill:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--hairline-2);
+  transform: none;          /* drop the lift; cleaner */
+}
+.nav-pill:active,
+.nav-x-btn:active,
+.connect-pill:active { transform: scale(0.985); }
+
+/* Icons: no drop-shadow, lighter stroke — clean SF feel */
+.np-icon, .np-arrow {
+  stroke-width: 1.8;
+  filter: none;
+  opacity: 0.92;
+}
+
+/* Buy $RIP: solid-feel button, no neon glow */
+.buy-rip-btn {
+  background:
+    linear-gradient(180deg, rgba(146,40,222,0.95), rgba(112,18,178,0.92));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: var(--edge-top-strong), 0 2px 6px rgba(0,0,0,0.30);
+  border-radius: 12px;
+  transition: background 0.25s var(--ease-soft),
+              transform 0.35s var(--ease-soft),
+              box-shadow 0.25s var(--ease-soft);
+}
+.buy-rip-btn:hover {
+  background:
+    linear-gradient(180deg, rgba(160,52,236,1), rgba(122,28,196,0.95));
+  box-shadow: var(--edge-top-strong), 0 4px 12px rgba(0,0,0,0.35);
+  transform: none;
+}
+.buy-rip-btn:active { transform: scale(0.985); }
+
+/* Primary CTA: same restrained recipe */
+.pixel-btn.primary {
+  background:
+    linear-gradient(180deg, rgba(146,40,222,0.95), rgba(112,18,178,0.92));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: var(--edge-top-strong), 0 2px 6px rgba(0,0,0,0.28);
+  border-radius: 14px;
+  transition: background 0.25s var(--ease-soft),
+              transform 0.35s var(--ease-soft),
+              box-shadow 0.25s var(--ease-soft);
+}
+.pixel-btn.primary:hover {
+  background:
+    linear-gradient(180deg, rgba(160,52,236,1), rgba(122,28,196,0.95));
+  box-shadow: var(--edge-top-strong), 0 6px 16px rgba(0,0,0,0.35);
+  transform: none;
+}
+.pixel-btn.primary:active { transform: scale(0.985); }
+
+/* Ghost: hairline glass, quiet */
+.pixel-btn.ghost {
+  background: rgba(255,255,255,0.045);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--edge-top);
+  border-radius: 14px;
+}
+.pixel-btn.ghost:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--hairline-2);
+  transform: none;
+}
+
+/* Live pill: smaller red tint, lower noise */
+.live-pill {
+  background: rgba(229,46,58,0.10);
+  border: 1px solid rgba(229,46,58,0.28);
+  box-shadow: var(--edge-top);
+}
+
+/* Hero-stat widgets: cleaner squircles, single edge */
+.hero-stats > div {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  box-shadow: var(--edge-top), var(--soft-shadow);
+  padding: 20px 20px 18px;
+  transition: background 0.25s var(--ease-soft);
+}
+.hero-stats > div:hover {
+  background: rgba(255,255,255,0.07);
+  transform: none;
+}
+
+/* Live ticker: same restrained recipe */
+.tk-live {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  box-shadow: var(--edge-top), var(--soft-shadow);
+}
+
+/* Tokenomics + intel cards: cleaner, less shadow stack */
+.tk-card,
+.ic-tile,
+.id-cond,
+.id-cm,
+.id-rangewrap,
+.id-analysis,
+.pf-break,
+.pf-summary,
+.intel-modal-inner {
+  background: rgba(255,255,255,0.035);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--edge-top);
+}
+
+/* Section eyebrow: tighter tracking, lighter weight (Apple labels) */
+.section-eyebrow {
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  color: var(--primary-2);
+  opacity: 0.92;
+}
+.section-eyebrow::before {
+  width: 22px; height: 1px;
+  background: var(--primary-2);
+  opacity: 0.7;
+}
+
+/* Section index numeral: soft fill instead of outlined — cleaner */
+.section-head::before {
+  color: rgba(255,255,255,0.05);
+  -webkit-text-stroke: 0;
+}
+
+/* Hairline divider under section heads: subtler */
+.section-head { border-bottom-color: rgba(255,255,255,0.06); }
+
+/* Universal: remove the global lift on .pixel-btn/.nav-pill */
+.pixel-btn:hover,
+.nav-pill:hover { transform: none; }
+.pixel-btn:active,
+.nav-pill:active { transform: scale(0.985); }
