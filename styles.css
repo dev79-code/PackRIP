@@ -2822,3 +2822,261 @@ section { padding: var(--section-pad) 24px; scroll-margin-top: calc(var(--nav-h)
 }
 .gacha-skip:hover { background: rgba(255,255,255,0.12); color: var(--txt); }
 .gacha-skip.hidden { display: none; }
+
+/* ============================================================
+   ===== LIQUID GLASS — Apple-style frosted surfaces =====
+   ============================================================
+   Layered: backdrop blur + saturation boost, inset specular
+   highlights (top-left bright + bottom-right faint), 1px
+   hairline border, soft outer shadow, springy hover.
+*/
+:root {
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 2.2);
+  --glass-blur: 22px;
+  --glass-sat: 180%;
+  --glass-bg:        rgba(255, 255, 255, 0.06);
+  --glass-bg-strong: rgba(255, 255, 255, 0.11);
+  --glass-border:    rgba(255, 255, 255, 0.14);
+  --glass-border-2:  rgba(255, 255, 255, 0.22);
+  --glass-inset:     inset 1px 1px 0 0 rgba(255,255,255,0.22),
+                     inset -1px -1px 0 0 rgba(255,255,255,0.05);
+  --glass-shadow:    0 10px 30px rgba(0,0,0,0.35),
+                     0 2px 6px rgba(0,0,0,0.22);
+}
+.glass-defs { position: absolute; width: 0; height: 0; pointer-events: none; }
+
+/* reusable utility */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+          backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inset), var(--glass-shadow);
+  transition: background 0.3s var(--ease),
+              border-color 0.3s var(--ease),
+              transform 0.55s var(--ease-spring),
+              box-shadow 0.35s var(--ease);
+}
+.glass:hover {
+  background: var(--glass-bg-strong);
+  border-color: var(--glass-border-2);
+  transform: translateY(-1px);
+}
+
+/* opt-in heavy refraction (use on hero treatments only) */
+.glass-distort::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: inherit;
+  backdrop-filter: blur(2px);
+  filter: url(#glass-distortion);
+  pointer-events: none;
+  isolation: isolate;
+}
+
+/* --- topnav: frosted bar --- */
+.topnav {
+  background: rgba(14, 14, 21, 0.55);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+          backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset,
+              0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+/* --- nav pills: glass squircles --- */
+.nav-pill {
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+          backdrop-filter: blur(14px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.10),
+              0 1px 2px rgba(0,0,0,0.25);
+  transition: background 0.3s var(--ease),
+              border-color 0.3s var(--ease),
+              transform 0.45s var(--ease-spring);
+}
+.nav-pill:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px) scale(1.02);
+}
+.nav-pill:active { transform: translateY(0) scale(0.98); }
+
+/* nav icons: bumped stroke + subtle drop-shadow for crispness */
+.np-icon, .np-arrow {
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+  opacity: 0.95;
+}
+
+/* --- X button + Connect pill: matching glass --- */
+.nav-x-btn,
+.connect-pill {
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+          backdrop-filter: blur(14px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.10),
+              0 1px 2px rgba(0,0,0,0.25);
+  transition: background 0.3s var(--ease),
+              border-color 0.3s var(--ease),
+              transform 0.45s var(--ease-spring),
+              color 0.3s var(--ease);
+}
+.nav-x-btn:hover,
+.connect-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: var(--txt);
+  transform: translateY(-1px);
+}
+.connect-pill.connected {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+/* --- BUY $RIP: purple liquid-glass button --- */
+.buy-rip-btn {
+  background:
+    linear-gradient(180deg, rgba(154,46,232,0.95), rgba(112,18,178,0.82));
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+          backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.30),
+              inset -1px -1px 0 rgba(0,0,0,0.18),
+              0 8px 24px rgba(112, 18, 178, 0.42);
+  color: #fff;
+  transition: transform 0.45s var(--ease-spring),
+              box-shadow 0.35s var(--ease),
+              background 0.3s var(--ease);
+}
+.buy-rip-btn:hover {
+  background:
+    linear-gradient(180deg, rgba(170,60,248,1), rgba(126,28,196,0.92));
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.38),
+              inset -1px -1px 0 rgba(0,0,0,0.18),
+              0 14px 32px rgba(138, 31, 214, 0.55);
+  transform: translateY(-1px);
+}
+.buy-rip-btn:active { transform: translateY(0) scale(0.98); }
+
+/* --- live-pill: red-tinted glass --- */
+.live-pill {
+  background: rgba(229, 46, 58, 0.14);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+          backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(229, 46, 58, 0.38);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.12),
+              0 4px 14px rgba(229,46,58,0.18);
+}
+
+/* --- primary / ghost buttons: glass variants --- */
+.pixel-btn.primary {
+  background:
+    linear-gradient(180deg, rgba(154,46,232,0.95), rgba(112,18,178,0.82));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.30),
+              inset -1px -1px 0 rgba(0,0,0,0.18),
+              0 8px 24px rgba(112,18,178,0.40);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+          backdrop-filter: blur(10px) saturate(160%);
+  transition: transform 0.45s var(--ease-spring),
+              box-shadow 0.35s var(--ease),
+              background 0.3s var(--ease);
+}
+.pixel-btn.primary:hover {
+  background:
+    linear-gradient(180deg, rgba(170,60,248,1), rgba(126,28,196,0.92));
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.38),
+              inset -1px -1px 0 rgba(0,0,0,0.18),
+              0 14px 32px rgba(138,31,214,0.55);
+  transform: translateY(-2px) scale(1.01);
+}
+.pixel-btn.primary:active { transform: translateY(0) scale(0.98); }
+
+.pixel-btn.ghost {
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+          backdrop-filter: blur(14px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.10);
+  transition: transform 0.45s var(--ease-spring),
+              background 0.3s var(--ease),
+              border-color 0.3s var(--ease);
+}
+.pixel-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+/* --- HERO STATS: Apple-style widget squircles --- */
+.hero-stats > div {
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+          backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  text-align: left;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.12),
+              inset -1px -1px 0 rgba(0,0,0,0.10),
+              0 6px 18px rgba(0, 0, 0, 0.28);
+  transition: transform 0.45s var(--ease-spring),
+              background 0.3s var(--ease);
+}
+.hero-stats > div:hover {
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-2px);
+}
+
+/* --- $RIP / SOL live ticker: glass widget --- */
+.tk-live {
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+          backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.12),
+              0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+/* --- Tokenomics & Intel cards: subtle glass lift --- */
+.tk-card,
+.ic-tile,
+.id-cond,
+.id-cm,
+.id-rangewrap,
+.id-analysis,
+.cmp-bar-track,
+.pf-break,
+.pf-summary,
+.intel-modal-inner,
+.rip-overlay-content {
+  background: rgba(255, 255, 255, 0.04);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+          backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.08),
+              0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+/* general icon polish (Apple SF Symbol feel) */
+svg[stroke="currentColor"] {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* perf: skip backdrop-filter on prefers-reduced-transparency */
+@media (prefers-reduced-transparency: reduce) {
+  .topnav, .nav-pill, .nav-x-btn, .connect-pill, .buy-rip-btn,
+  .pixel-btn.primary, .pixel-btn.ghost, .live-pill,
+  .hero-stats > div, .tk-live, .tk-card, .ic-tile,
+  .id-cond, .id-cm, .id-rangewrap, .id-analysis,
+  .pf-break, .pf-summary, .intel-modal-inner {
+    -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+  }
+}
