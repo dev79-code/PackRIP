@@ -3337,3 +3337,89 @@ svg[stroke="currentColor"] {
   .pixel-btn.primary, .buy-rip-btn,
   .rip-feature-card, .tk-card.big, .pf-summary { animation: none; }
 }
+
+/* ---- subtle aurora for nav chrome (very low intensity, staggered) ---- */
+@keyframes aurora-nav {
+  0%, 100% { background-position: 0% 50%, 100% 50%, 0 0; }
+  50%      { background-position: 100% 50%, 0% 50%, 0 0; }
+}
+.nav-pill,
+.nav-x-btn,
+.connect-pill {
+  background:
+    radial-gradient(70% 100% at 0% 50%,   rgba(138, 31, 214, 0.28), transparent 70%),
+    radial-gradient(70% 100% at 100% 50%, rgba(255,  90, 200, 0.18), transparent 70%),
+    rgba(255, 255, 255, 0.045);
+  background-size: 240% 240%, 240% 240%, 100% 100%;
+  background-blend-mode: screen, screen, normal;
+  animation: aurora-nav 45s ease-in-out infinite;
+}
+/* stagger so all six pills don't shimmer in sync */
+.nav-pill:nth-child(2) { animation-delay: -6s; }
+.nav-pill:nth-child(3) { animation-delay: -12s; }
+.nav-pill:nth-child(4) { animation-delay: -18s; }
+.nav-pill:nth-child(5) { animation-delay: -24s; }
+.nav-pill:nth-child(6) { animation-delay: -30s; }
+.nav-x-btn   { animation-delay: -8s; }
+.connect-pill { animation-delay: -16s; }
+
+.nav-pill:hover,
+.nav-x-btn:hover,
+.connect-pill:hover {
+  background:
+    radial-gradient(70% 100% at 0% 50%,   rgba(138, 31, 214, 0.45), transparent 70%),
+    radial-gradient(70% 100% at 100% 50%, rgba(255,  90, 200, 0.32), transparent 70%),
+    rgba(255, 255, 255, 0.10);
+  background-size: 240% 240%, 240% 240%, 100% 100%;
+  background-blend-mode: screen, screen, normal;
+  border-color: var(--hairline-2);
+}
+
+/* ---- marketplace pack-pane: full aurora over deep base ---- */
+.pack-pane {
+  background:
+    radial-gradient(45% 50% at 20% 25%, rgba(138, 31, 214, 0.55), transparent 70%),
+    radial-gradient(40% 45% at 80% 75%, rgba(255, 57, 162, 0.38), transparent 70%),
+    radial-gradient(40% 45% at 80% 20%, rgba(80, 40, 255, 0.42), transparent 70%),
+    radial-gradient(35% 40% at 20% 85%, rgba(255, 211, 90, 0.24), transparent 70%),
+    linear-gradient(135deg, #15101e, #0e0e15);
+  background-size:
+    160% 160%, 160% 160%, 160% 160%, 160% 160%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-drift 30s ease-in-out infinite;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+/* ---- marketplace primary CTA: same vibrant aurora as .pixel-btn.primary ---- */
+.open-btn {
+  background:
+    radial-gradient(60% 60% at 30% 30%, rgba(255, 80, 200, 0.85), transparent 70%),
+    radial-gradient(60% 60% at 70% 70%, rgba(80, 50, 255, 0.85), transparent 70%),
+    radial-gradient(55% 55% at 50% 0%,  rgba(255, 210, 90, 0.55), transparent 70%),
+    radial-gradient(55% 55% at 50% 100%, rgba(34, 211, 238, 0.55), transparent 70%),
+    linear-gradient(180deg, rgba(146, 40, 222, 0.95), rgba(112, 18, 178, 0.95));
+  background-size:
+    200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-shift 22s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: var(--edge-top-strong), 0 2px 6px rgba(0, 0, 0, 0.28);
+  color: #fff;
+}
+.open-btn::before { display: none; }  /* kill old shimmer that conflicted */
+.open-btn:hover {
+  background:
+    radial-gradient(60% 60% at 30% 30%, rgba(255, 90, 210, 0.95), transparent 70%),
+    radial-gradient(60% 60% at 70% 70%, rgba(95, 65, 255, 0.95), transparent 70%),
+    radial-gradient(55% 55% at 50% 0%,  rgba(255, 220, 110, 0.65), transparent 70%),
+    radial-gradient(55% 55% at 50% 100%, rgba(80, 220, 255, 0.65), transparent 70%),
+    linear-gradient(180deg, rgba(160, 52, 236, 1), rgba(122, 28, 196, 1));
+  background-size:
+    200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-pill, .nav-x-btn, .connect-pill,
+  .pack-pane, .open-btn { animation: none; }
+}
