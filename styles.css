@@ -3435,3 +3435,143 @@ svg[stroke="currentColor"] {
   .nav-pill, .nav-x-btn, .connect-pill,
   .pack-pane, .open-btn { animation: none; }
 }
+
+/* ---- Hit Board rows: aurora drift, staggered per row ---- */
+.hit-row {
+  background:
+    radial-gradient(40% 60% at 15% 30%, rgba(138, 31, 214, 0.40), transparent 70%),
+    radial-gradient(35% 55% at 85% 70%, rgba(255, 57, 162, 0.30), transparent 70%),
+    radial-gradient(35% 50% at 85% 20%, rgba(80, 40, 255, 0.32), transparent 70%),
+    radial-gradient(30% 45% at 20% 85%, rgba(255, 211, 90, 0.20), transparent 70%),
+    linear-gradient(135deg, #15101e, #0e0e15);
+  background-size:
+    160% 160%, 160% 160%, 160% 160%, 160% 160%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-drift 32s ease-in-out infinite;
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: var(--edge-top), 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+/* keep the top-3 special borders, just on top of the aurora */
+.hit-row:nth-child(1) { border-color: var(--gold); animation-delay: 0s; }
+.hit-row:nth-child(2) { border-color: #c46bff; animation-delay: -5s; }
+.hit-row:nth-child(3) { border-color: var(--primary-2); animation-delay: -10s; }
+.hit-row:nth-child(4) { animation-delay: -15s; }
+.hit-row:nth-child(5) { animation-delay: -20s; }
+.hit-row:nth-child(6) { animation-delay: -25s; }
+.hit-row:nth-child(n+7) { animation-delay: -30s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hit-row { animation: none; }
+}
+
+/* ---- How It Works: aurora step cards (rebuilt) ---- */
+.steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.step {
+  display: block;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 18px;
+  box-shadow: var(--edge-top), 0 6px 18px rgba(0, 0, 0, 0.28);
+  background:
+    radial-gradient(45% 60% at 15% 20%, rgba(138, 31, 214, 0.45), transparent 70%),
+    radial-gradient(40% 55% at 85% 80%, rgba(255, 57, 162, 0.32), transparent 70%),
+    radial-gradient(40% 50% at 85% 15%, rgba(80, 40, 255, 0.36), transparent 70%),
+    radial-gradient(35% 45% at 15% 90%, rgba(255, 211, 90, 0.20), transparent 70%),
+    linear-gradient(135deg, #15101e, #0e0e15);
+  background-size:
+    170% 170%, 170% 170%, 170% 170%, 170% 170%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-drift 34s ease-in-out infinite;
+  transition: transform 0.4s var(--ease-soft), border-color 0.3s var(--ease-soft);
+}
+.step:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+}
+/* stagger each step's animation so the grid drifts organically */
+.step:nth-child(1) { animation-delay: 0s; }
+.step:nth-child(2) { animation-delay: -5s; }
+.step:nth-child(3) { animation-delay: -10s; }
+.step:nth-child(4) { animation-delay: -15s; }
+.step:nth-child(5) { animation-delay: -20s; }
+.step:nth-child(6) { animation-delay: -25s; }
+
+.step-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.step-num {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+.step-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--txt);
+  box-shadow: var(--edge-top);
+}
+.step h4 {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+  color: var(--txt);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.step p {
+  font-size: 13px; line-height: 1.55;
+  color: var(--txt-2);
+  margin: 0;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+.step p b { color: var(--gold); font-weight: 600; }
+
+/* ---- Owner / Shop card: aurora over deep base ---- */
+.owner-card {
+  background:
+    radial-gradient(40% 55% at 15% 25%, rgba(138, 31, 214, 0.45), transparent 70%),
+    radial-gradient(35% 50% at 85% 75%, rgba(255, 57, 162, 0.30), transparent 70%),
+    radial-gradient(35% 45% at 85% 20%, rgba(80, 40, 255, 0.35), transparent 70%),
+    radial-gradient(30% 40% at 20% 85%, rgba(255, 211, 90, 0.22), transparent 70%),
+    linear-gradient(135deg, #15101e, #0e0e15);
+  background-size:
+    160% 160%, 160% 160%, 160% 160%, 160% 160%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-drift 36s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step, .owner-card { animation: none; }
+}
+
+/* X button — switch from icon-only to icon + handle pill */
+.nav-x-btn {
+  width: auto;
+  height: 34px;
+  padding: 0 12px 0 11px;
+  gap: 7px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.nav-x-handle {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  line-height: 1;
+}
+@media (max-width: 980px) {
+  .nav-x-handle { display: none; }   /* icon-only at tighter widths */
+  .nav-x-btn { width: 36px; padding: 0; }
+}
