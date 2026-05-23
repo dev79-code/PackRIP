@@ -3258,3 +3258,82 @@ svg[stroke="currentColor"] {
 .nav-pill:hover { transform: none; }
 .pixel-btn:active,
 .nav-pill:active { transform: scale(0.985); }
+
+/* ============================================================
+   ===== AURORA GRADIENT — animated blobs (buttons + cards) =====
+   ============================================================
+   Layered radial gradients composited with background-blend-mode
+   over a base color, with slowly drifting background-position.
+   No markup changes, no blur on the element (text stays crisp),
+   no z-index gymnastics. Respect prefers-reduced-motion.
+*/
+@keyframes aurora-shift {
+  0%, 100% {
+    background-position:
+      0% 0%, 100% 100%, 50% 0%, 50% 100%, 0 0;
+  }
+  50% {
+    background-position:
+      100% 100%, 0% 0%, 50% 100%, 50% 0%, 0 0;
+  }
+}
+@keyframes aurora-drift {
+  0%, 100% {
+    background-position:
+      0% 50%, 100% 50%, 30% 0%, 70% 100%, 0 0;
+  }
+  50% {
+    background-position:
+      100% 50%, 0% 50%, 70% 100%, 30% 0%, 0 0;
+  }
+}
+
+/* Primary CTAs — vibrant aurora over deep purple */
+.pixel-btn.primary,
+.buy-rip-btn {
+  background:
+    radial-gradient(60% 60% at 30% 30%, rgba(255, 80, 200, 0.85), transparent 70%),
+    radial-gradient(60% 60% at 70% 70%, rgba(80, 50, 255, 0.85), transparent 70%),
+    radial-gradient(55% 55% at 50% 0%,  rgba(255, 210, 90, 0.55), transparent 70%),
+    radial-gradient(55% 55% at 50% 100%, rgba(34, 211, 238, 0.55), transparent 70%),
+    linear-gradient(180deg, rgba(146, 40, 222, 0.95), rgba(112, 18, 178, 0.95));
+  background-size:
+    200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-shift 22s ease-in-out infinite;
+}
+.pixel-btn.primary:hover,
+.buy-rip-btn:hover {
+  background:
+    radial-gradient(60% 60% at 30% 30%, rgba(255, 90, 210, 0.95), transparent 70%),
+    radial-gradient(60% 60% at 70% 70%, rgba(95, 65, 255, 0.95), transparent 70%),
+    radial-gradient(55% 55% at 50% 0%,  rgba(255, 220, 110, 0.65), transparent 70%),
+    radial-gradient(55% 55% at 50% 100%, rgba(80, 220, 255, 0.65), transparent 70%),
+    linear-gradient(180deg, rgba(160, 52, 236, 1), rgba(122, 28, 196, 1));
+  background-size:
+    200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+}
+
+/* Feature cards — softer aurora over deep base */
+.rip-feature-card,
+.tk-card.big,
+.pf-summary {
+  background:
+    radial-gradient(45% 50% at 20% 25%, rgba(138, 31, 214, 0.55), transparent 70%),
+    radial-gradient(40% 45% at 80% 75%, rgba(255, 57, 162, 0.40), transparent 70%),
+    radial-gradient(40% 45% at 80% 20%, rgba(80, 40, 255, 0.45), transparent 70%),
+    radial-gradient(35% 40% at 20% 85%, rgba(255, 211, 90, 0.28), transparent 70%),
+    linear-gradient(135deg, #15101e, #0e0e15);
+  background-size:
+    160% 160%, 160% 160%, 160% 160%, 160% 160%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-drift 30s ease-in-out infinite;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.tk-card.big .tk-value { color: var(--gold); }   /* re-tune contrast on new bg */
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-btn.primary, .buy-rip-btn,
+  .rip-feature-card, .tk-card.big, .pf-summary { animation: none; }
+}
