@@ -3196,15 +3196,27 @@ svg[stroke="currentColor"] {
 
 /* Hero-stat widgets: cleaner squircles, single edge */
 .hero-stats > div {
-  background: rgba(255,255,255,0.04);
+  /* darker frosted base so colorful hero-cards behind don't blast
+     through and trample the labels. higher opacity + stronger blur. */
+  background: rgba(20, 22, 32, 0.62);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+          backdrop-filter: blur(24px) saturate(170%);
   border: 1px solid var(--hairline);
   border-radius: 20px;
   box-shadow: var(--edge-top), var(--soft-shadow);
   padding: 20px 20px 18px;
   transition: background 0.25s var(--ease-soft);
 }
+/* readable labels against any backdrop */
+.hero-stats span {
+  color: var(--txt-2);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.hero-stats b {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
 .hero-stats > div:hover {
-  background: rgba(255,255,255,0.07);
+  background: rgba(28, 30, 42, 0.70);
   transform: none;
 }
 
