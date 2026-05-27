@@ -3689,6 +3689,17 @@ svg[stroke="currentColor"] {
   .drop-card, .drop-dot { animation: none; }
 }
 
+/* spinner shown while a Solana tx is confirming */
+.spinner {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* X button — switch from icon-only to icon + handle pill */
 .nav-x-btn {
   width: auto;

@@ -552,9 +552,27 @@ function renderRealPackGrid(filter = 'all') {
       const payWith = btn.dataset.pay; // 'rip' | 'sol'
       const pack = PACKS.find(p => p.id === pid);
       if (!pack) return;
-      // free rip doesn't apply to a mystery pack flow with paid intent — but for sim
-      // purposes we still gate the FIRST rip on freeUsed unless the user has earned packs.
-      // Once their freeUsed is consumed, subsequent attempts open with a paid-flow toast.
+
+      // SOL path = real on-chain transfer to the treasury, then rip
+      if (payWith === 'sol') {
+        runSolPayAndRip(pack, btn);
+        return;
+      }
+
+      // $RIP path — until the token launches no one can have $RIP yet,
+      // so the button just opens the pack with no gate. Once TOKEN.CA
+      // is set, this branch will check the user's $RIP balance and burn
+      // the listed amount as a real SPL token instruction.
+      if (!TOKEN.CA) {
+        state.selectedPackId = pid;
+        state.lastPayWith = 'rip';
+        openRipModal();
+        setupRipScreen(pack);
+        showScreen('rip');
+        return;
+      }
+
+      // post-launch fallback (real burn wiring lands when CA is set)
       if (state.freeUsed && state.packs.length === 0) {
         showFreeUsedToast(pack, payWith);
         return;
@@ -806,7 +824,7 @@ function showFreeUsedToast(pack, payWith) {
   }
   const hasCollection = state.collection.length > 0;
   const packName = pack ? pack.name : null;
-  const solPrice = pack ? pack.solAllIn.toFixed(3) : null;
+  const solPrice = pack ? liveSolAmount(pack).toFixed(3) : null;
   const ripPrice = pack ? fmt(pack.burn) : null;
   t.innerHTML = `
     <div class="ft-card">
@@ -840,17 +858,14 @@ function showFreeUsedToast(pack, payWith) {
   const wbtn = document.getElementById('ftWallet');
   if (wbtn) wbtn.addEventListener('click', () => { t.classList.remove('show'); connectWallet(); });
   const sbtn = document.getElementById('ftPaySol');
-  if (sbtn) sbtn.addEventListener('click', () => {
-    t.classList.remove('show');
-    // Mock SOL payment — adds the pack to user's owned-packs inventory and immediately rips it
-    state.packs.push({ packId: pack.id, paidWith: 'sol', solPaid: pack.solAllIn, ts: Date.now() });
-    saveInventory();
-    state.selectedPackId = pack.id;
-    state.lastPayWith = 'sol';
-    openRipModal();
-    setupRipScreen(pack);
-    showScreen('rip');
-    // freeUsed gate is bypassed because they paid
+  if (sbtn) sbtn.addEventListener('click', async () => {
+    // Real Solana mainnet transfer to the treasury. Toast stays visible
+    // (showing the spinner on the button) until the tx confirms; on
+    // success we dismiss the toast and open the rip.
+    await runSolPayAndRip(pack, sbtn);
+    if (state.packs.some(p => p.packId === pack.id && p.paidWith === 'sol')) {
+      t.classList.remove('show');
+    }
   });
 }
 
@@ -2635,3 +2650,89 @@ async function refreshMarket() {
 applyMarket();          // paint correct state immediately (pre-launch safe)
 refreshMarket();        // SOL live now; $RIP live once TOKEN.CA is set
 setInterval(() => { if (!document.hidden) refreshMarket(); }, 90 * 1000);
+
+// ============================================================
+// ===== ON-CHAIN SOL PAYMENT (Phantom + Solana web3.js) =====
+//   Real Solana mainnet transfer to the treasury wallet. The rip
+//   only opens after the tx is confirmed on-chain. Pack price is
+//   computed from the LIVE SOL/USD rate when available so the
+//   on-chain amount stays accurate.
+// ============================================================
+const TREASURY = 'ANcUqGnB7SDJiHdPuXyEwzQV6AWRBu5AzbLcvHQpjHgM';
+// public mainnet RPC — fine for low traffic; swap to Helius/QuickNode/Triton for prod scale.
+const RPC_URL  = 'https://api.mainnet-beta.solana.com';
+
+// USD * 1.05 shop margin / live SOL price; falls back to a 200 USD/SOL peg if the price hasn't loaded yet.
+function liveSolAmount(pack) {
+  const solUsd = (typeof MARKET !== 'undefined' && MARKET.sol) ? MARKET.sol : 200;
+  return +(pack.marketUSD * 1.05 / solUsd).toFixed(4);
+}
+
+async function paySOL(pack) {
+  if (!window.solanaWeb3) {
+    throw new Error('Solana library not loaded yet — refresh the page and try again.');
+  }
+  if (!window.solana || !window.solana.isPhantom) {
+    if (confirm('Phantom wallet not detected. Open phantom.app to install?')) {
+      window.open('https://phantom.app/', '_blank');
+    }
+    throw new Error('Phantom wallet required.');
+  }
+  if (!state.wallet) {
+    await connectWallet();
+    if (!state.wallet) throw new Error('Wallet connection cancelled.');
+  }
+  const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL }
+    = window.solanaWeb3;
+  const conn = new Connection(RPC_URL, 'confirmed');
+  const from = new PublicKey(state.wallet);
+  const to   = new PublicKey(TREASURY);
+  const amountSol = liveSolAmount(pack);
+  const lamports  = Math.round(amountSol * LAMPORTS_PER_SOL);
+
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+  const tx = new Transaction({ recentBlockhash: blockhash, feePayer: from })
+    .add(SystemProgram.transfer({ fromPubkey: from, toPubkey: to, lamports }));
+
+  // Phantom signs + sends in one call
+  const { signature } = await window.solana.signAndSendTransaction(tx);
+  // Wait for the network to confirm before we open the pack
+  await conn.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+  return { signature, amountSol };
+}
+
+// Shared UX wrapper: spin a button while paying, run rip on success,
+// surface real errors instead of silently doing nothing.
+async function runSolPayAndRip(pack, btn) {
+  if (!btn) return;
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px">' +
+                  '<span class="spinner" aria-hidden="true"></span>Confirming on-chain…</span>';
+  try {
+    const { signature, amountSol } = await paySOL(pack);
+    console.log('[packrip] SOL payment confirmed:', { pack: pack.id, amountSol, signature,
+      explorer: `https://solscan.io/tx/${signature}` });
+    state.packs.push({ packId: pack.id, paidWith: 'sol', solPaid: amountSol, tx: signature, ts: Date.now() });
+    saveInventory();
+    state.selectedPackId = pack.id;
+    state.lastPayWith = 'sol';
+    openRipModal();
+    setupRipScreen(pack);
+    showScreen('rip');
+  } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    // Phantom returns a code 4001 / "User rejected the request" when user cancels.
+    if (/reject|cancel/i.test(msg)) {
+      console.info('[packrip] payment cancelled by user');
+    } else {
+      console.warn('[packrip] payment failed:', e);
+      alert('Payment failed: ' + msg);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.innerHTML = original;
+  }
+}

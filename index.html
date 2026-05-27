@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
   <!-- liquid-glass distortion filter (opt-in via .glass-distort) -->
@@ -818,6 +818,14 @@
 
   <div class="flash" id="flash"></div>
 
-  <script src="script.js?v=20"></script>
+  <script type="module">
+    // esm.sh ships a fully browser-bundled @solana/web3.js (Buffer + polyfills baked in)
+    import * as solanaWeb3 from 'https://esm.sh/@solana/web3.js@1.95.3';
+    window.solanaWeb3 = solanaWeb3.default
+      ? Object.assign({}, solanaWeb3.default, solanaWeb3)
+      : solanaWeb3;
+    window.dispatchEvent(new Event('solanaWeb3Ready'));
+  </script>
+  <script src="script.js?v=23"></script>
 </body>
 </html>
