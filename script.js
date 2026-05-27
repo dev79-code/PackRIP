@@ -544,6 +544,18 @@ function renderRealPackGrid(filter = 'all') {
     grid.appendChild(el);
   });
 
+  // clicking the pack tile itself (anywhere except a button) opens
+  // the pack detail modal, same chrome as the Card Intelligence modal
+  grid.querySelectorAll('.real-pack').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('[data-pack-id], button, a')) return;
+      const pid = card.querySelector('[data-pack-id]')?.dataset.packId;
+      const pack = PACKS.find(p => p.id === pid);
+      if (pack && typeof openPackDetail === 'function') openPackDetail(pack);
+    });
+  });
+
   // wire RIP buttons (both $RIP and SOL paths flow into the same simulator;
   // the chosen payment is recorded so the summary can show it)
   grid.querySelectorAll('[data-pack-id]').forEach(btn => {
@@ -1653,12 +1665,17 @@ function renderPackContents(pack) {
   grid.innerHTML = '';
   const samples = [];
   ['secret', 'ultra', 'holo', 'rare', 'uncommon', 'common'].forEach(k => {
-    (REAL_CARDS[k] || []).slice(0, 2).forEach(c => samples.push(c));
+    const rar = (typeof RARITIES !== 'undefined') ? RARITIES.find(r => r.key === k) : null;
+    (REAL_CARDS[k] || []).slice(0, 2).forEach(c => samples.push(Object.assign({}, c, { rarity: rar })));
   });
-  samples.slice(0, 12).forEach(c => {
+  samples.slice(0, 12).forEach(card => {
     const cell = document.createElement('div');
     cell.className = 'content-card';
-    cell.innerHTML = `<img src="${cardImg(c.set, c.num, false)}" alt="${c.name}" loading="lazy" />`;
+    cell.style.cursor = 'pointer';
+    cell.innerHTML = `<img src="${cardImg(card.set, card.num, false)}" alt="${card.name}" loading="lazy" />`;
+    cell.addEventListener('click', () => {
+      if (typeof openCardDetail === 'function') openCardDetail(card);
+    });
     grid.appendChild(cell);
   });
 }
@@ -1683,6 +1700,12 @@ function renderCardsGrid() {
       const nm   = (!rec.isEst && rec.name) ? rec.name : c.name;
       const tile = document.createElement('div');
       tile.className = 'card-tile';
+      tile.style.cursor = 'pointer';
+      tile.addEventListener('click', (e) => {
+        // don't hijack clicks on the source-verify link inside the tile
+        if (e.target.closest('a, button')) return;
+        if (typeof openCardDetail === 'function') openCardDetail(card);
+      });
       tile.innerHTML = `
         <div class="card-img-wrap">
           <img src="${cardImg(c.set, c.num, false)}" alt="${nm}" loading="lazy" />
@@ -2427,6 +2450,145 @@ function openCardDetail(card) {
   });
 }
 
+// ============================================================
+// ===== PACK DETAIL MODAL — same chrome as openCardDetail =====
+// ============================================================
+function openPackDetail(pack) {
+  const detail = document.getElementById('intelDetail');
+  const modal  = document.getElementById('intelModal');
+  if (!detail || !modal) return;
+
+  const eraLabel = pack.mystery ? 'MYSTERY' :
+                   pack.era === 'vintage' ? 'VINTAGE · OG' :
+                   pack.era === 'boutique' ? 'BOUTIQUE' : 'MODERN';
+  const solAll = (typeof liveSolAmount === 'function') ? liveSolAmount(pack) : pack.solAllIn;
+  const solUsd = (typeof MARKET !== 'undefined' && MARKET.sol) ? MARKET.sol : null;
+  const stockClass = pack.stock <= 3 ? 'down' : pack.stock < 15 ? 'stable' : 'up';
+
+  // sample contents — 12 representative cards across rarities
+  const samples = [];
+  ['secret', 'ultra', 'holo', 'rare', 'uncommon', 'common'].forEach(k => {
+    const rar = (typeof RARITIES !== 'undefined') ? RARITIES.find(r => r.key === k) : null;
+    (REAL_CARDS[k] || []).slice(0, 2).forEach(c => samples.push(Object.assign({}, c, { rarity: rar })));
+  });
+  const contentsHTML = samples.slice(0, 12).map((card, i) => `
+    <div class="pd-card" data-sample-i="${i}" style="cursor:pointer">
+      <img src="${cardImg(card.set, card.num, false)}" alt="${card.name}" loading="lazy" />
+      <span class="pd-card-rar ${card.rarity ? card.rarity.css : ''}">${card.rarity ? card.rarity.label : ''}</span>
+    </div>`).join('');
+
+  detail.innerHTML = `
+    <div class="id-grid pd-grid">
+      <div class="id-card pd-pack-col">
+        <div class="pd-pack-img">
+          ${pack.mystery
+            ? `<div class="pd-mystery"><div class="pd-q">?</div><div class="pd-mys-l">MYSTERY · RIP</div></div>`
+            : `<img src="${pack.packImg}" alt="${pack.name}" />`}
+        </div>
+        <div class="pd-pack-meta">
+          <span class="pd-era">${eraLabel}</span>
+          ${pack.year ? `<span class="pd-year">${pack.year}</span>` : ''}
+          ${pack.stock === 1 ? '<span class="pd-last">LAST ONE</span>' : ''}
+        </div>
+      </div>
+
+      <div class="id-main">
+        <div class="id-head">
+          <div>
+            <div class="id-name">${pack.name}</div>
+            <div class="id-set">${pack.tag}${pack.nameJp ? ` · <span style="color:var(--txt-2)">${pack.nameJp}</span>` : ''}</div>
+          </div>
+          <div class="id-price">
+            <div class="id-price-num">${pack.mystery ? '???' : fmtUSD(pack.marketUSD)}</div>
+            <div class="id-price-chg">sealed booster · market</div>
+          </div>
+        </div>
+
+        <div class="id-srcline">
+          ${pack.mystery
+            ? 'Contents unknown until ripped. Rules and odds are encoded on-chain pre-launch.'
+            : `Real Japanese inventory from the Osaka shop. <b>${pack.stock} sealed in stock</b> · stock count is live.`}
+        </div>
+
+        <div class="id-cond">
+          <div class="id-pr-head"><span>Pay with</span><span>You send</span><span>USD equivalent</span></div>
+          <div class="id-pr-row">
+            <span class="id-pr-v">$RIP burn + SOL fee</span>
+            <span class="id-pr-c">${fmt(pack.burn)} $RIP + ${pack.sol} SOL</span>
+            <span class="id-pr-c">${pack.mystery ? '—' : '≈ ' + fmtUSD(pack.marketUSD)}</span>
+          </div>
+          <div class="id-pr-row">
+            <span class="id-pr-v">SOL all-in</span>
+            <span class="id-pr-c">${solAll.toFixed(4)} SOL</span>
+            <span class="id-pr-c">${pack.mystery ? '—' : '≈ ' + fmtUSD(pack.marketUSD * 1.05)}</span>
+          </div>
+          ${solUsd ? `<div class="id-pr-row"><span class="id-pr-v" style="font-size:10px;color:var(--txt-3)">SOL rate (live)</span><span class="id-pr-c" style="font-size:11px">$${solUsd.toFixed(2)}/SOL</span><span class="id-pr-c" style="font-size:10px;color:var(--txt-3)">CoinGecko</span></div>` : ''}
+        </div>
+
+        ${pack.mystery ? '' : `
+        <div class="id-chart-label">Sample cards from this set</div>
+        <div class="pd-contents">${contentsHTML}</div>`}
+
+        <div class="id-analysis">
+          <div class="id-an-head">
+            <span class="id-an-title">Pack overview</span>
+            <span class="id-an-tag ${stockClass}">${eraLabel}</span>
+          </div>
+          <p class="id-an-text">
+            ${pack.mystery
+              ? `Mystery pack — pay, rip, see what you get. Higher variance than a fixed set. Stock is unlimited until the curator pulls it.`
+              : `${pack.name} sealed booster from the ${pack.year} ${pack.era} era. Loose-pack market value is ${fmtUSD(pack.marketUSD)} USD; we pass that through with a flat ${((1.05 - 1) * 100).toFixed(0)}% shop margin. ${pack.stock <= 3 ? 'Stock is low — only ' + pack.stock + ' left.' : pack.stock + ' sealed in stock.'} Every pack ripped here is the physical booster on camera in Osaka.`}
+          </p>
+        </div>
+
+        <div class="pd-cta-row">
+          <button class="pixel-btn primary big pd-cta" data-pd-pay="sol" data-pd-id="${pack.id}">
+            <img class="sol-icon-inline" src="img/solana-sol-logo.png" alt="" />
+            RIP w/ SOL · ${solAll.toFixed(3)} SOL
+          </button>
+          <button class="pixel-btn ghost big pd-cta" data-pd-pay="rip" data-pd-id="${pack.id}">
+            <img class="rip-icon-inline" src="img/logo.png" alt="" />
+            RIP w/ $RIP
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  modal.classList.add('open');
+  document.body.classList.add('modal-open');
+
+  // sample-card clicks open the per-card intel detail (reuses openCardDetail)
+  detail.querySelectorAll('.pd-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const i = +el.dataset.sampleI;
+      const card = samples[i];
+      if (card && typeof openCardDetail === 'function') openCardDetail(card);
+    });
+  });
+
+  // CTA buttons inside the pack modal hand off to the same rip flow
+  detail.querySelectorAll('.pd-cta').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pid = btn.dataset.pdId;
+      const payWith = btn.dataset.pdPay;
+      const pk = PACKS.find(p => p.id === pid);
+      if (!pk) return;
+      if (payWith === 'sol') {
+        runSolPayAndRip(pk, btn);
+        return;
+      }
+      // $RIP path — frictionless pre-launch (no token yet to burn)
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      state.selectedPackId = pid;
+      state.lastPayWith = 'rip';
+      openRipModal();
+      setupRipScreen(pk);
+      showScreen('rip');
+    });
+  });
+}
+
 (function wireIntel() {
   document.querySelectorAll('.intel-tab').forEach(tab => {
     tab.addEventListener('click', () => { INTEL.tab = tab.dataset.itab; renderIntel(); });
@@ -2736,3 +2898,100 @@ async function runSolPayAndRip(pack, btn) {
     btn.innerHTML = original;
   }
 }
+
+// ============================================================
+// ===== SMOOTH AUTO-SCROLL (for screen recording) =====
+//   Floating button bottom-left. Click or press "A" to toggle.
+//   Arrow Up/Down to fine-tune speed while running.
+// ============================================================
+(function autoScroll() {
+  const btn = document.createElement('button');
+  btn.id = 'autoScrollBtn';
+  btn.className = 'auto-scroll-btn';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Toggle smooth auto-scroll (press A)');
+  btn.title = 'Smooth auto-scroll · press A · arrows tune speed';
+  btn.innerHTML = `
+    <span class="as-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+        <polygon points="6 3 20 12 6 21 6 3"/>
+      </svg>
+    </span>
+    <span class="as-label">Auto-scroll</span>
+    <span class="as-speed"><b>150</b><i>px/s</i></span>
+    <span class="as-key">A</span>`;
+  document.body.appendChild(btn);
+
+  const ICON_PLAY  = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+
+  let on    = false;
+  let speed = 150;     // px/sec
+  let lastT = 0;
+  let raf   = 0;
+  const speedEl = btn.querySelector('.as-speed b');
+  const iconEl  = btn.querySelector('.as-icon');
+
+  function setSpeed(v) {
+    speed = Math.max(20, Math.min(600, v));
+    speedEl.textContent = speed;
+  }
+
+  function tick(t) {
+    if (!lastT) lastT = t;
+    const dt = (t - lastT) / 1000;
+    lastT = t;
+    // `scroll-behavior: smooth` on <html> would fight us frame-by-frame;
+    // scrollTo({behavior:'instant'}) explicitly bypasses it.
+    const sc = document.scrollingElement || document.documentElement;
+    const next = sc.scrollTop + speed * dt;
+    try { window.scrollTo({ top: next, behavior: 'instant' }); }
+    catch (e) { sc.scrollTop = next; }
+    const maxScroll = sc.scrollHeight - sc.clientHeight;
+    if (sc.scrollTop >= maxScroll - 1) { stop(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (on) return;
+    on = true; lastT = 0;
+    btn.classList.add('on');
+    iconEl.innerHTML = ICON_PAUSE;
+    raf = requestAnimationFrame(tick);
+  }
+  function stop() {
+    if (!on) return;
+    on = false;
+    cancelAnimationFrame(raf);
+    btn.classList.remove('on');
+    iconEl.innerHTML = ICON_PLAY;
+  }
+  function toggle() { on ? stop() : start(); }
+
+  btn.addEventListener('click', toggle);
+
+  window.addEventListener('keydown', (e) => {
+    // ignore when typing in inputs / contenteditable / with modifiers
+    const tag = (e.target && e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' ||
+        (e.target && e.target.isContentEditable)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (e.key === 'a' || e.key === 'A') {
+      e.preventDefault();
+      toggle();
+      return;
+    }
+    if (on && (e.key === 'ArrowUp')) {
+      e.preventDefault();
+      setSpeed(speed + 25);
+    }
+    if (on && (e.key === 'ArrowDown')) {
+      e.preventDefault();
+      setSpeed(speed - 25);
+    }
+  });
+
+  // stop on Esc or wheel/touch (user takes back control)
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') stop(); });
+})();
