@@ -3556,6 +3556,139 @@ svg[stroke="currentColor"] {
   .step, .owner-card { animation: none; }
 }
 
+/* ---- Launch Drop card (1999 Base Set 1st Ed Booster Box) ---- */
+.drop-section {
+  padding: clamp(56px, 7vw, 96px) 24px clamp(40px, 4vw, 72px);
+}
+.drop-card {
+  width: min(100%, var(--content));
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 48px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: var(--edge-top), 0 14px 40px rgba(0, 0, 0, 0.45);
+  background:
+    radial-gradient(40% 50% at 12% 18%, rgba(255, 211, 90, 0.45), transparent 70%),
+    radial-gradient(38% 48% at 88% 78%, rgba(255, 57, 162, 0.36), transparent 70%),
+    radial-gradient(40% 50% at 85% 12%, rgba(138, 31, 214, 0.50), transparent 70%),
+    radial-gradient(35% 45% at 15% 88%, rgba(80, 40, 255, 0.42), transparent 70%),
+    linear-gradient(135deg, #1a0f1f, #0e0e15);
+  background-size:
+    160% 160%, 160% 160%, 160% 160%, 160% 160%, 100% 100%;
+  background-blend-mode: screen, screen, screen, screen, normal;
+  animation: aurora-drift 36s ease-in-out infinite;
+}
+.drop-head { max-width: 800px; margin-bottom: clamp(28px, 3.5vw, 44px); }
+.drop-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--gold);
+  background: rgba(255, 211, 90, 0.10);
+  border: 1px solid rgba(255, 211, 90, 0.30);
+  padding: 6px 12px; border-radius: 999px;
+  margin-bottom: 18px;
+}
+.drop-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.drop-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 700; letter-spacing: -0.025em; line-height: 1.04;
+  margin: 0 0 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.drop-sub {
+  font-size: var(--fs-lead);
+  color: var(--txt-2); line-height: 1.55;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  margin: 0; max-width: 65ch;
+}
+.drop-sub b { color: var(--gold); font-weight: 600; }
+
+/* 3/10/23 segmented bar */
+.drop-bar {
+  display: flex; gap: 6px;
+  width: 100%; min-height: 64px;
+  margin-bottom: clamp(28px, 3vw, 40px);
+  border-radius: 14px; overflow: hidden;
+  box-shadow: var(--edge-top);
+}
+.db-seg {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 10px 8px; gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.db-n {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 26px); font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.db-l {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.85); font-weight: 600;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.db-opened { background: linear-gradient(180deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 0.65)); }
+.db-free   { background: linear-gradient(180deg, rgba(138, 31, 214, 0.85), rgba(112, 18, 178, 0.70)); }
+.db-sold   { background: linear-gradient(180deg, rgba(255, 211, 90, 0.80), rgba(214, 138, 58, 0.70)); }
+.db-sold .db-n, .db-sold .db-l { color: #2a1d05; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25); }
+
+/* 4 detail tiles */
+.drop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.dg-tile {
+  padding: 20px 22px;
+  border-radius: 16px;
+  background: rgba(20, 22, 32, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+          backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: var(--edge-top);
+}
+.dg-big {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4vw, 52px); font-weight: 700;
+  letter-spacing: -0.03em; line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.dg-name {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--primary-2);
+  margin-bottom: 10px;
+}
+.dg-tile p {
+  font-size: 13px; line-height: 1.55;
+  color: var(--txt-2); margin: 0 0 10px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+.dg-tile p b { color: var(--gold); font-weight: 600; }
+.dg-cta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 700;
+  color: var(--gold);
+  border-bottom: 1px solid rgba(255, 211, 90, 0.4);
+  padding-bottom: 1px;
+}
+.dg-cta:hover { color: #fff; border-bottom-color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-card, .drop-dot { animation: none; }
+}
+
 /* X button — switch from icon-only to icon + handle pill */
 .nav-x-btn {
   width: auto;
