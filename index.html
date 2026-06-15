@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=19" />
 </head>
 <body>
   <!-- liquid-glass distortion filter (opt-in via .glass-distort) -->
@@ -87,6 +87,9 @@
 
   <!-- ============== HERO ============== -->
   <section id="top" class="hero">
+    <!-- WebGL ambient lighting (falls back to the CSS gradient if unsupported) -->
+    <canvas id="heroShader" class="hero-shader" aria-hidden="true"></canvas>
+    <div class="hero-shader-veil" aria-hidden="true"></div>
     <div class="hero-content">
       <div class="live-pill">
         <span class="dot"></span> LIVE NOW · @kenji_san · ripping a 151 booster
@@ -684,23 +687,25 @@
     <section id="screen-rip" class="screen gacha-screen">
       <!-- Stage A: gacha machine with iridescent holo pack inside -->
       <div class="gacha-stage" id="gachaStage">
-        <div class="gacha-machine" id="gachaMachine">
-          <div class="gm-header">
-            <span class="gm-pack-name" id="gmPackName">PACK</span>
-          </div>
-          <div class="gm-window">
-            <div class="gm-holo" id="gmHolo">
-              <div class="gm-holo-pr">PR</div>
-            </div>
-          </div>
-          <div class="gm-base">
-            <div class="gm-buttons">
-              <span></span><span></span><span></span><span></span><span></span>
-            </div>
-            <div class="gm-slot"></div>
-          </div>
-          <div class="gm-knob"></div>
+        <!-- rarity-tinted charge glow behind the pack -->
+        <div class="rip-glow" id="ripGlow" aria-hidden="true"></div>
+
+        <!-- pack name (nice for recording) -->
+        <div class="rip-name" id="ripName" aria-hidden="true"></div>
+
+        <!-- the sealed pack that actually gets ripped -->
+        <div class="rip-pack" id="ripPack">
+          <div class="rip-light" id="ripLight" aria-hidden="true"></div>
+          <img class="rip-pack-img" id="ripPackImg" src="" alt="sealed pack" />
+          <div class="rip-pack-fallback" id="ripPackFallback" aria-hidden="true"><span>PR</span></div>
+          <div class="rip-tearstrip" id="ripTearStrip" aria-hidden="true"></div>
+          <div class="rip-seam" id="ripSeam" aria-hidden="true"></div>
+          <div class="rip-shine" aria-hidden="true"></div>
         </div>
+
+        <!-- hint shown during charge -->
+        <div class="rip-hint" id="ripHint" aria-hidden="true">ripping…</div>
+
         <!-- particle burst container — populated by JS during reveal -->
         <div class="particle-burst" id="particleBurst" aria-hidden="true"></div>
         <!-- light beams / god rays radiating during burst -->
@@ -711,12 +716,21 @@
         <div class="spot-cone" id="spotCone" aria-hidden="true"></div>
         <!-- giant rarity callout text -->
         <div class="rarity-callout" id="rarityCallout">RARE</div>
-        <!-- spotlight reveal: real card materializes here -->
+        <!-- spotlight reveal: real card materializes here, flips from back to front -->
         <div class="card-spotlight" id="cardSpotlight">
           <div class="card-spot-glow"></div>
-          <img class="card-spot-img" id="cardSpotImg" src="" alt="" />
+          <div class="card-flip" id="cardFlip">
+            <div class="cf-face cf-back"><img src="img/logo.png" alt="" /></div>
+            <div class="cf-face cf-front">
+              <img class="card-spot-img" id="cardSpotImg" src="" alt="" />
+              <div class="cf-shine" aria-hidden="true"></div>
+            </div>
+          </div>
           <div class="card-spot-rarity" id="cardSpotRarity"></div>
         </div>
+
+        <!-- filmstrip of every card in the pack -->
+        <div class="rip-allpulls" id="ripAllPulls" aria-hidden="true"></div>
       </div>
 
       <!-- Stage B: buyback offer panel (slides in after reveal) -->
@@ -826,6 +840,6 @@
       : solanaWeb3;
     window.dispatchEvent(new Event('solanaWeb3Ready'));
   </script>
-  <script src="script.js?v=27"></script>
+  <script src="script.js?v=29"></script>
 </body>
 </html>

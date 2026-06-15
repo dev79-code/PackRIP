@@ -945,47 +945,74 @@ let ripTorn = false;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-function setupRipScreen(pack) {
-  // Reset all gacha-screen visuals before kicking off a new sequence
-  const machine  = document.getElementById('gachaMachine');
-  const holo     = document.getElementById('gmHolo');
-  const burst    = document.getElementById('particleBurst');
-  const beams    = document.getElementById('lightBeams');
-  const flash    = document.getElementById('gachaFlash');
-  const cone     = document.getElementById('spotCone');
-  const callout  = document.getElementById('rarityCallout');
-  const spot     = document.getElementById('cardSpotlight');
-  const panel    = document.getElementById('buybackPanel');
-  const skip     = document.getElementById('gachaSkip');
+// rarity tiers drive how big the whole reveal feels — count, color,
+// shake, hold all escalate so a secret rare is unmistakably an event.
+const RIP_TIERS = {
+  common:   { color: 'rgba(184,192,208,1)', particles: 26,  beams: 0,  shake: 0, hold: 700,  flash: 0.35, chg: '0.6s' },
+  uncommon: { color: 'rgba(95,255,155,1)',  particles: 40,  beams: 6,  shake: 0, hold: 850,  flash: 0.45, chg: '0.5s' },
+  rare:     { color: 'rgba(111,211,255,1)', particles: 70,  beams: 8,  shake: 1, hold: 1100, flash: 0.6,  chg: '0.4s' },
+  holo:     { color: 'rgba(217,137,255,1)', particles: 110, beams: 10, shake: 2, hold: 1400, flash: 0.8,  chg: '0.3s' },
+  ultra:    { color: 'rgba(255,224,106,1)', particles: 160, beams: 12, shake: 2, hold: 1700, flash: 1,    chg: '0.22s' },
+  secret:   { color: 'rgba(255,95,162,1)',  particles: 230, beams: 16, shake: 3, hold: 2100, flash: 1,    chg: '0.16s' },
+};
 
-  if (machine) machine.style.display = '';
-  if (holo) { holo.classList.remove('dropping'); holo.style.display = ''; }
+function setupRipScreen(pack) {
+  // Reset every rip-screen element before kicking off a new sequence
+  const stage   = document.getElementById('gachaStage');
+  const glow    = document.getElementById('ripGlow');
+  const ripName = document.getElementById('ripName');
+  const hint    = document.getElementById('ripHint');
+  const ripPack = document.getElementById('ripPack');
+  const burst   = document.getElementById('particleBurst');
+  const beams   = document.getElementById('lightBeams');
+  const flash   = document.getElementById('gachaFlash');
+  const cone    = document.getElementById('spotCone');
+  const callout = document.getElementById('rarityCallout');
+  const spot    = document.getElementById('cardSpotlight');
+  const strip   = document.getElementById('ripAllPulls');
+  const panel   = document.getElementById('buybackPanel');
+  const skip    = document.getElementById('gachaSkip');
+
+  if (stage) stage.classList.remove('shake-1', 'shake-2', 'shake-3');
+  if (glow)  { glow.classList.remove('build', 'peak'); glow.style.removeProperty('--tint'); }
+  if (ripName) { ripName.classList.remove('show'); ripName.textContent = (pack.name || 'PACK'); }
+  if (hint)  hint.classList.remove('show');
+  if (ripPack) {
+    ripPack.className = 'rip-pack';
+    ripPack.style.display = '';
+    ripPack.style.removeProperty('--pack');
+    ripPack.style.removeProperty('--tint');
+    ripPack.style.removeProperty('--chg-speed');
+    // real sealed-pack art when we have it, holo fallback for mystery packs
+    const img = document.getElementById('ripPackImg');
+    if (pack.packImg) {
+      ripPack.style.setProperty('--pack', `url("${pack.packImg}")`);
+      if (img) { img.src = pack.packImg; img.onerror = () => ripPack.classList.add('no-img'); }
+    } else {
+      ripPack.classList.add('no-img');
+    }
+  }
   if (burst) burst.innerHTML = '';
   if (beams) { beams.classList.remove('fire'); beams.innerHTML = ''; }
   if (flash) flash.classList.remove('fire');
   if (cone)  cone.classList.remove('fire');
   if (callout) { callout.classList.remove('show'); callout.className = 'rarity-callout'; }
   if (spot)  spot.classList.remove('show');
+  if (strip) { strip.classList.remove('show'); strip.innerHTML = ''; }
   if (panel) panel.classList.remove('show');
   if (skip)  skip.classList.remove('hidden');
 
-  // pack name in the machine header
-  const name = document.getElementById('gmPackName');
-  if (name) name.textContent = (pack.name || 'PACK').toUpperCase() + ' PACK';
-
-  // kick off the sequence shortly after the screen mounts
-  setTimeout(() => playGachaSequence(pack), 600);
+  setTimeout(() => playGachaSequence(pack), 400);
 }
 
 async function playGachaSequence(pack) {
-  // 1. ROLL the cards now
+  // 1. ROLL the cards now + find the best pull (drives the whole vibe)
   state.pulled = rollPack(pack);
   state.revealIdx = 0;
   state.freeUsed = true;
   save();
   if (typeof updateOpenBtn === 'function') updateOpenBtn();
 
-  // pick BEST pull to feature in the spotlight
   let bestRank = -1;
   state.bestIdx = 0;
   state.pulled.forEach((c, i) => {
@@ -994,88 +1021,150 @@ async function playGachaSequence(pack) {
   });
   const bestCard = state.pulled[state.bestIdx];
   const rarityKey = bestCard.rarity.key;
+  const tier = RIP_TIERS[rarityKey] || RIP_TIERS.rare;
   const rarityLabel = ({
     common: 'COMMON', uncommon: 'UNCOMMON', rare: 'RARE',
     holo: 'HOLO RARE', ultra: 'ULTRA RARE', secret: 'SECRET RARE',
   })[rarityKey] || 'RARE';
 
-  // 2. PACK DROP — holo card slides slowly through the slot (weighted feel)
-  await sleep(1100);                                        // longer hold so user sees the holo pack
-  const holo = document.getElementById('gmHolo');
-  holo.classList.add('dropping');
-  await sleep(700);
-  holo.style.display = 'none';
-  await sleep(180);
+  const stage   = document.getElementById('gachaStage');
+  const glow    = document.getElementById('ripGlow');
+  const ripName = document.getElementById('ripName');
+  const hint    = document.getElementById('ripHint');
+  const ripPack = document.getElementById('ripPack');
 
-  // 3. PARTICLE BURST — bigger fog cloud + light beams + screen flash at peak
+  // tint the charge glow + tear light to the rarity colour
+  glow.style.setProperty('--tint', tier.color);
+  ripPack.style.setProperty('--tint', tier.color);
+  ripPack.style.setProperty('--chg-speed', tier.chg);
+
+  // 2. PACK ENTERS
+  ripName.textContent = (pack.name || 'PACK');
+  ripName.classList.add('show');
+  ripPack.classList.add('show');
+  await sleep(560);
+
+  // 3. CHARGE — pack vibrates (faster the rarer), glow builds, shine sweeps.
+  //    For high tiers, glow ramps to "peak" partway so you can feel it coming.
+  ripPack.classList.add('charging');
+  glow.classList.add('build');
+  hint.classList.add('show');
+  await sleep(900);
+  if (tier.shake >= 2) { glow.classList.add('peak'); await sleep(500); }
+  else { await sleep(250); }
+  hint.classList.remove('show');
+
+  // 4. THE TEAR — strip flies off, seam flashes, light blooms, base dissolves
+  ripName.classList.remove('show');
+  ripPack.classList.remove('charging');
+  void ripPack.offsetWidth;
+  ripPack.classList.add('tearing');
+  if (tier.shake) { shakeStage(stage, Math.min(tier.shake, 2)); }
+  await sleep(360);
+
+  // 5. BURST — fog + beams + particles, all scaled to the tier
   const burst = document.getElementById('particleBurst');
   const beams = document.getElementById('lightBeams');
   const flash = document.getElementById('gachaFlash');
-  burst.innerHTML = '';
-  beams.innerHTML = '';
+  burst.innerHTML = ''; beams.innerHTML = '';
 
-  // 3a. fog cloud rises immediately
   const fog = document.createElement('div');
   fog.className = 'particle-fog fire';
+  fog.style.background = `radial-gradient(circle, ${tier.color} 0%, ${tier.color.replace(',1)', ',0.5)')} 25%, transparent 72%)`;
   burst.appendChild(fog);
 
-  // 3b. spawn 12 god-ray beams radiating outward
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < tier.beams; i++) {
     const b = document.createElement('div');
     b.className = 'beam';
-    b.style.transform = `translateX(-50%) rotate(${(i * 30) - 90}deg)`;
+    b.style.transform = `translateX(-50%) rotate(${(i * (360 / tier.beams)) - 90}deg)`;
     beams.appendChild(b);
   }
-  beams.classList.add('fire');
+  if (tier.beams) beams.classList.add('fire');
 
-  // 3c. spawn 100 sparkle particles in pink/purple/white
-  const colors = ['#ffffff', '#ff00aa', '#ff66dd', '#aa00ff', '#7700ff', '#ffaaff', '#ffeeff'];
-  for (let i = 0; i < 100; i++) {
+  // particle palette: white + the tier colour, gold sprinkled into top tiers
+  const base = tier.color;
+  const palette = rarityKey === 'secret' || rarityKey === 'ultra'
+    ? ['#ffffff', base, '#ffd35a', '#fff3c4', base]
+    : ['#ffffff', base, base, '#ffffff'];
+  for (let i = 0; i < tier.particles; i++) {
     const p = document.createElement('div');
     p.className = 'particle fire';
-    p.style.left = `calc(50% + ${(Math.random() - 0.5) * 120}px)`;
-    p.style.setProperty('--x', ((Math.random() - 0.5) * 800) + 'px');
-    p.style.setProperty('--y', -(400 + Math.random() * 350) + 'px');
-    p.style.setProperty('--dur', (1.2 + Math.random() * 1.0) + 's');
-    p.style.background = colors[i % colors.length];
-    p.style.color      = colors[i % colors.length];
-    p.style.animationDelay = (Math.random() * 0.5) + 's';
-    p.style.width = (4 + Math.random() * 6) + 'px';
-    p.style.height = p.style.width;
+    p.style.left = `calc(50% + ${(Math.random() - 0.5) * 140}px)`;
+    p.style.setProperty('--x', ((Math.random() - 0.5) * (700 + tier.particles)) + 'px');
+    p.style.setProperty('--y', -(360 + Math.random() * 420) + 'px');
+    p.style.setProperty('--dur', (1.1 + Math.random() * 1.1) + 's');
+    const col = palette[i % palette.length];
+    p.style.background = col; p.style.color = col;
+    p.style.animationDelay = (Math.random() * 0.45) + 's';
+    const sz = 3 + Math.random() * 7;
+    p.style.width = sz + 'px'; p.style.height = sz + 'px';
     burst.appendChild(p);
   }
 
-  // 3d. PEAK FLASH at ~600ms
-  await sleep(600);
+  // peak flash, intensity by tier
+  await sleep(160);
+  flash.style.opacity = '';
+  flash.style.setProperty('--flash-max', tier.flash);
   flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
 
-  // 4. SPOTLIGHT REVEAL — machine fades, card rises into spotlight cone
-  await sleep(150);
-  document.getElementById('gachaMachine').style.display = 'none';
-
-  // overhead spotlight cone fires
+  // 6. HIT CARD FLIPS UP
+  await sleep(180);
+  document.getElementById('ripPack').classList.add('done');
   const cone = document.getElementById('spotCone');
   cone.classList.remove('fire'); void cone.offsetWidth; cone.classList.add('fire');
 
-  // card materializes
   const spotImg = document.getElementById('cardSpotImg');
   spotImg.src = bestCard.img;
   spotImg.onerror = function () { this.onerror = null; this.src = bestCard.imgFallback; };
   spotImg.alt = bestCard.name;
+  const glowEl = document.querySelector('#cardSpotlight .card-spot-glow');
+  if (glowEl) glowEl.style.background =
+    `radial-gradient(ellipse, ${tier.color} 0%, ${tier.color.replace(',1)', ',0.35)')} 35%, transparent 70%)`;
   const rar = document.getElementById('cardSpotRarity');
   rar.textContent = bestCard.rarity.label;
   rar.className = 'card-spot-rarity ' + bestCard.rarity.css;
   document.getElementById('cardSpotlight').classList.add('show');
 
-  // big rarity callout text flies in
-  await sleep(200);
+  // screen punch on the flip landing for the big tiers
+  if (tier.shake) setTimeout(() => shakeStage(stage, tier.shake), 620);
+
+  // rarity callout flies in as the card lands
+  await sleep(420);
   const callout = document.getElementById('rarityCallout');
   callout.textContent = rarityLabel;
   callout.className = 'rarity-callout show ' + bestCard.rarity.css;
 
-  // 5. After the dramatic hold, slide up the buyback offer
-  await sleep(1900);
+  // 7. hold on the hit, then fan in all pulls + buyback
+  await sleep(tier.hold);
+  renderAllPulls();
+  await sleep(450);
   showBuybackPanel(bestCard, pack);
+}
+
+// apply a rarity-scaled screen shake to the stage
+function shakeStage(stage, level) {
+  if (!stage) return;
+  const cls = 'shake-' + Math.max(1, Math.min(3, level));
+  stage.classList.remove('shake-1', 'shake-2', 'shake-3');
+  void stage.offsetWidth;
+  stage.classList.add(cls);
+  setTimeout(() => stage.classList.remove(cls), 650);
+}
+
+// fan the whole pack's cards into a filmstrip, hit highlighted
+function renderAllPulls() {
+  const strip = document.getElementById('ripAllPulls');
+  if (!strip) return;
+  strip.innerHTML = '';
+  state.pulled.forEach((c, i) => {
+    const t = document.createElement('div');
+    t.className = 'rip-thumb' + (i === state.bestIdx ? ' is-hit' : '');
+    t.style.animationDelay = (i * 55) + 'ms';
+    t.innerHTML = `<img src="${c.img}" alt="${c.name}" onerror="this.onerror=null;this.src='${c.imgFallback}'" />`;
+    t.addEventListener('click', () => { if (typeof openCardDetail === 'function') openCardDetail(c); });
+    strip.appendChild(t);
+  });
+  strip.classList.add('show');
 }
 
 function showBuybackPanel(card, pack) {
@@ -1099,23 +1188,30 @@ function showBuybackPanel(card, pack) {
   document.getElementById('buybackPanel').classList.add('show');
 }
 
-// SKIP — fast-forward to the buyback offer
+// SKIP — fast-forward straight to the reveal + buyback offer
 const skipGachaBtn = document.getElementById('gachaSkip');
 if (skipGachaBtn) skipGachaBtn.addEventListener('click', () => {
   if (!state.pulled || state.pulled.length === 0) return;
-  const holo = document.getElementById('gmHolo');
-  if (holo) holo.style.display = 'none';
-  document.getElementById('gachaMachine').style.display = 'none';
+  // tear down any in-flight rip visuals
+  const ripPack = document.getElementById('ripPack');
+  if (ripPack) ripPack.style.display = 'none';
+  ['ripGlow', 'ripName', 'ripHint'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.remove('show', 'build', 'peak');
+  });
   document.getElementById('particleBurst').innerHTML = '';
+  document.getElementById('lightBeams').innerHTML = '';
+
   const bestCard = state.pulled[state.bestIdx || 0];
   const pack = PACKS.find(p => p.id === state.selectedPackId);
   const spotImg = document.getElementById('cardSpotImg');
   spotImg.src = bestCard.img;
+  spotImg.onerror = function () { this.onerror = null; this.src = bestCard.imgFallback; };
   spotImg.alt = bestCard.name;
   const rar = document.getElementById('cardSpotRarity');
   rar.textContent = bestCard.rarity.label;
   rar.className = 'card-spot-rarity ' + bestCard.rarity.css;
   document.getElementById('cardSpotlight').classList.add('show');
+  renderAllPulls();
   showBuybackPanel(bestCard, pack);
   document.getElementById('gachaSkip').classList.add('hidden');
 });
@@ -2994,4 +3090,135 @@ async function runSolPayAndRip(pack, btn) {
 
   // stop on Esc or wheel/touch (user takes back control)
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') stop(); });
+})();
+
+// ============================================================
+// ===== HERO BACKGROUND SHADER (WebGL ambient lighting) =====
+//   Flowing brand-tinted gradients behind the hero. Pauses when
+//   off-screen or the tab is hidden; static frame for reduced
+//   motion; silently falls back to the CSS gradient if WebGL is
+//   unavailable.
+// ============================================================
+(function heroShader() {
+  const canvas = document.getElementById('heroShader');
+  if (!canvas) return;
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;   // hero keeps its CSS gradient
+
+  const reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const vSrc = `attribute vec2 a_position; void main(){ gl_Position = vec4(a_position,0.0,1.0); }`;
+  const fSrc = `
+    precision mediump float;
+    uniform vec2 u_resolution; uniform float u_time; uniform vec2 u_mouse;
+    vec3 palette(float t){
+      vec3 a = vec3(0.5), b = vec3(0.5), c = vec3(1.0, 1.0, 1.0), d = vec3(0.0, 0.10, 0.22);
+      return a + b * cos(6.28318 * (c * t + d));
+    }
+    void main(){
+      vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+      vec2 uv0 = uv;
+      uv = uv * 2.0 - 1.0;
+      uv.x *= u_resolution.x / u_resolution.y;
+      float d = length(uv);
+      vec3 col = vec3(0.0);
+      for(float i = 0.0; i < 4.0; i++){
+        uv = fract(uv * 1.5) - 0.5;
+        d = length(uv) * exp(-length(uv0));
+        vec3 color = palette(length(uv0) + i * 0.4 + u_time * 0.20);
+        d = sin(d * 4.0 + u_time * 0.6) / 36.0;
+        d = pow(0.006 / abs(d), 1.35);
+        vec2 m = u_mouse - uv0;
+        d *= 1.0 + sin(length(m) * 8.0 - u_time * 1.2) * 0.08;
+        col += color * d;
+      }
+      col *= vec3(0.85, 0.40, 1.05);                       // push to brand purple/magenta
+      vec3 g1 = vec3(0.04, 0.02, 0.10), g2 = vec3(0.30, 0.05, 0.34);
+      vec3 g = mix(g1, g2, uv0.y + sin(u_time * 0.5) * 0.15);
+      col = mix(col, g, 0.35);
+      col *= 0.5;                                          // dim → reads as ambient lighting
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn('[heroShader] compile:', gl.getShaderInfoLog(s)); gl.deleteShader(s); return null;
+    }
+    return s;
+  }
+  const vs = compile(gl.VERTEX_SHADER, vSrc);
+  const fs = compile(gl.FRAGMENT_SHADER, fSrc);
+  if (!vs || !fs) return;
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.warn('[heroShader] link:', gl.getProgramInfoLog(prog)); return;
+  }
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const aPos  = gl.getAttribLocation(prog, 'a_position');
+  const uRes  = gl.getUniformLocation(prog, 'u_resolution');
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uMouse= gl.getUniformLocation(prog, 'u_mouse');
+  const mouse = { x: 0.5, y: 0.5 };
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = canvas.clientWidth  || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    canvas.width  = Math.max(1, Math.floor(w * dpr));
+    canvas.height = Math.max(1, Math.floor(h * dpr));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('pointermove', (e) => {
+    const r = canvas.getBoundingClientRect();
+    if (!r.width) return;
+    mouse.x = (e.clientX - r.left) / r.width;
+    mouse.y = 1.0 - (e.clientY - r.top) / r.height;
+  }, { passive: true });
+
+  const start = performance.now();
+  let raf = 0, running = false;
+
+  function draw(t) {
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform1f(uTime, t);
+    gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  function frame() {
+    draw((performance.now() - start) * 0.001);
+    raf = requestAnimationFrame(frame);
+  }
+  function play() { if (running) return; running = true; raf = requestAnimationFrame(frame); }
+  function stop() { running = false; if (raf) cancelAnimationFrame(raf); }
+
+  if (reduce) { draw(0); return; }   // single static frame, no loop
+
+  const hero = document.getElementById('top') || canvas.parentElement;
+  if ('IntersectionObserver' in window && hero) {
+    new IntersectionObserver((ents) => {
+      ents.forEach(en => {
+        if (en.isIntersecting && !document.hidden) play(); else stop();
+      });
+    }, { threshold: 0.01 }).observe(hero);
+  } else {
+    play();
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { stop(); return; }
+    const r = hero ? hero.getBoundingClientRect() : null;
+    if (!r || (r.bottom > 0 && r.top < window.innerHeight)) play();
+  });
 })();
