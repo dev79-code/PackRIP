@@ -2944,8 +2944,10 @@ setInterval(() => { if (!document.hidden) refreshMarket(); }, 90 * 1000);
 //   on-chain amount stays accurate.
 // ============================================================
 const TREASURY = 'ANcUqGnB7SDJiHdPuXyEwzQV6AWRBu5AzbLcvHQpjHgM';
-// public mainnet RPC — fine for low traffic; swap to Helius/QuickNode/Triton for prod scale.
-const RPC_URL  = 'https://api.mainnet-beta.solana.com';
+// Dedicated Helius mainnet RPC (reliable under launch traffic).
+// NOTE: this key is visible in the client bundle — lock it to the site's
+// domain in the Helius dashboard (Access Control) so it can't be reused.
+const RPC_URL  = 'https://mainnet.helius-rpc.com/?api-key=68c0e1e3-3f49-49fa-af44-ed013a040046';
 
 // USD * 1.05 shop margin / live SOL price; falls back to a 200 USD/SOL peg if the price hasn't loaded yet.
 function liveSolAmount(pack) {
