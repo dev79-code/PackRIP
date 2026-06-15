@@ -957,6 +957,23 @@ const RIP_TIERS = {
   secret:   { color: 'rgba(255,95,162,1)',  particles: 230, beams: 16, shake: 3, hold: 2100, flash: 1,    chg: '0.16s' },
 };
 
+// build the concentric bloom squares once (shown while the pack charges)
+function buildBloom() {
+  const el = document.getElementById('ripBloom');
+  if (!el || el.children.length) return;
+  const N = 20;
+  for (let i = 0; i < N; i++) {
+    const sq = document.createElement('div');
+    sq.className = 'rip-bloom-sq';
+    const size = 40 + i * 26;
+    sq.style.width = size + 'px';
+    sq.style.height = size + 'px';
+    sq.style.setProperty('--delay', (i * 0.1) + 's');
+    sq.style.setProperty('--dur', '2.2s');
+    el.appendChild(sq);
+  }
+}
+
 function setupRipScreen(pack) {
   // Reset every rip-screen element before kicking off a new sequence
   const stage   = document.getElementById('gachaStage');
@@ -993,6 +1010,9 @@ function setupRipScreen(pack) {
       ripPack.classList.add('no-img');
     }
   }
+  buildBloom();
+  const bloom = document.getElementById('ripBloom');
+  if (bloom) bloom.classList.remove('show');
   if (burst) burst.innerHTML = '';
   if (beams) { beams.classList.remove('fire'); beams.innerHTML = ''; }
   if (flash) flash.classList.remove('fire');
@@ -1051,6 +1071,8 @@ async function playGachaSequence(pack) {
   ripPack.classList.add('charging');
   glow.classList.add('build');
   hint.classList.add('show');
+  const bloom = document.getElementById('ripBloom');
+  if (bloom) bloom.classList.add('show');
   await sleep(900);
   if (tier.shake >= 2) { glow.classList.add('peak'); await sleep(500); }
   else { await sleep(250); }
@@ -1058,6 +1080,7 @@ async function playGachaSequence(pack) {
 
   // 4. THE TEAR — strip flies off, seam flashes, light blooms, base dissolves
   ripName.classList.remove('show');
+  if (bloom) bloom.classList.remove('show');
   ripPack.classList.remove('charging');
   void ripPack.offsetWidth;
   ripPack.classList.add('tearing');
@@ -1198,7 +1221,7 @@ if (skipGachaBtn) skipGachaBtn.addEventListener('click', () => {
   // tear down any in-flight rip visuals
   const ripPack = document.getElementById('ripPack');
   if (ripPack) ripPack.style.display = 'none';
-  ['ripGlow', 'ripName', 'ripHint'].forEach(id => {
+  ['ripGlow', 'ripName', 'ripHint', 'ripBloom'].forEach(id => {
     const el = document.getElementById(id); if (el) el.classList.remove('show', 'build', 'peak');
   });
   document.getElementById('particleBurst').innerHTML = '';

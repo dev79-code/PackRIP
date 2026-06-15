@@ -4037,6 +4037,33 @@ svg[stroke="currentColor"] {
 .card-ring.show { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .card-ring { display: none; } }
 
+/* concentric squares blooming out while the pack charges */
+.rip-bloom {
+  position: absolute; top: 50%; left: 50%;
+  width: 1px; height: 1px;
+  transform: translate(-50%, -50%);
+  z-index: 3; pointer-events: none;
+  opacity: 0; transition: opacity 0.4s ease;
+  mix-blend-mode: screen;
+}
+.rip-bloom.show { opacity: 0.6; }
+.rip-bloom-sq {
+  position: absolute; top: 50%; left: 50%;
+  border: 2px solid transparent;
+  border-image: linear-gradient(45deg,
+    rgb(147,51,234), rgb(168,85,247), rgb(196,181,253), rgb(139,92,246), rgb(124,58,237)) 1;
+  transform: translate(-50%, -50%) scale(0) rotate(0deg);
+  animation: bloom-pulse var(--dur, 2.2s) ease-in-out var(--delay, 0s) infinite alternate;
+  animation-play-state: paused;
+}
+.rip-bloom.show .rip-bloom-sq { animation-play-state: running; }
+@keyframes bloom-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0) rotate(0deg);     opacity: 0; }
+  50%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.8) rotate(180deg); opacity: 0.7; }
+}
+@media (prefers-reduced-motion: reduce) { .rip-bloom { display: none; } }
+
 /* ===== hit card flip reveal =====
    scaleX "squash" flip + opacity face-swap at the squash midpoint —
    no 3D / backface-visibility (which renders inconsistently), so the

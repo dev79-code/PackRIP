@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=21" />
 </head>
 <body>
   <!-- liquid-glass distortion filter (opt-in via .glass-distort) -->
@@ -689,6 +689,8 @@
       <div class="gacha-stage" id="gachaStage">
         <!-- rarity-tinted charge glow behind the pack -->
         <div class="rip-glow" id="ripGlow" aria-hidden="true"></div>
+        <!-- concentric squares blooming out while the pack charges -->
+        <div class="rip-bloom" id="ripBloom" aria-hidden="true"></div>
 
         <!-- pack name (nice for recording) -->
         <div class="rip-name" id="ripName" aria-hidden="true"></div>
@@ -842,6 +844,6 @@
       : solanaWeb3;
     window.dispatchEvent(new Event('solanaWeb3Ready'));
   </script>
-  <script src="script.js?v=30"></script>
+  <script src="script.js?v=31"></script>
 </body>
 </html>
