@@ -842,8 +842,13 @@
     window.solanaWeb3 = solanaWeb3.default
       ? Object.assign({}, solanaWeb3.default, solanaWeb3)
       : solanaWeb3;
+    // SPL token helpers (burn/ATA) — pinned to the same web3 version
+    import * as splToken from 'https://esm.sh/@solana/spl-token@0.4.9?deps=@solana/web3.js@1.95.3';
+    window.splToken = splToken.default
+      ? Object.assign({}, splToken.default, splToken)
+      : splToken;
     window.dispatchEvent(new Event('solanaWeb3Ready'));
   </script>
-  <script src="script.js?v=32"></script>
+  <script src="script.js?v=34"></script>
 </body>
 </html>

@@ -571,26 +571,14 @@ function renderRealPackGrid(filter = 'all') {
         return;
       }
 
-      // $RIP path — until the token launches no one can have $RIP yet,
-      // so the button just opens the pack with no gate. Once TOKEN.CA
-      // is set, this branch will check the user's $RIP balance and burn
-      // the listed amount as a real SPL token instruction.
-      if (!TOKEN.CA) {
-        state.selectedPackId = pid;
-        state.lastPayWith = 'rip';
-        openRipModal();
-        setupRipScreen(pack);
-        showScreen('rip');
+      // $RIP path — real on-chain burn of the listed amount, then rip.
+      if (TOKEN.CA) {
+        runRipBurnAndRip(pack, btn);
         return;
       }
-
-      // post-launch fallback (real burn wiring lands when CA is set)
-      if (state.freeUsed && state.packs.length === 0) {
-        showFreeUsedToast(pack, payWith);
-        return;
-      }
+      // pre-launch fallback (no token yet): just open the pack
       state.selectedPackId = pid;
-      state.lastPayWith = payWith;
+      state.lastPayWith = 'rip';
       openRipModal();
       setupRipScreen(pack);
       showScreen('rip');
@@ -2700,7 +2688,12 @@ function openPackDetail(pack) {
         runSolPayAndRip(pk, btn);
         return;
       }
-      // $RIP path — frictionless pre-launch (no token yet to burn)
+      // $RIP path — real on-chain burn when the token is live
+      if (TOKEN.CA) {
+        runRipBurnAndRip(pk, btn);
+        return;
+      }
+      // pre-launch fallback (no token yet): just open the pack
       modal.classList.remove('open');
       document.body.classList.remove('modal-open');
       state.selectedPackId = pid;
@@ -2811,8 +2804,10 @@ fetchRealPrices();   // load real, verifiable TCGplayer/Cardmarket prices
 //   Nothing is fabricated before launch.
 // ============================================================
 const TOKEN = {
-  CA: '',          // <-- paste the $RIP mint address here at launch
+  CA: 'YTKGpkppXRbyQq9fUnTJHoG27Nz83H1AfpheDbKpump',  // $RIP mint
   SYMBOL: 'RIP',
+  DECIMALS: 6,      // fallback — burnRIP auto-detects the real value on-chain
+  TOKEN2022: true,  // fallback — burnRIP auto-detects the real token program on-chain
 };
 const buyUrl    = () => TOKEN.CA ? `https://pump.fun/coin/${TOKEN.CA}` : 'https://pump.fun';
 const dexUrl    = () => TOKEN.CA ? `https://dexscreener.com/solana/${TOKEN.CA}` : null;
@@ -3016,6 +3011,105 @@ async function runSolPayAndRip(pack, btn) {
     } else {
       console.warn('[packrip] payment failed:', e);
       alert('Payment failed: ' + msg);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.innerHTML = original;
+  }
+}
+
+// ===== $RIP BURN (Token-2022) =====
+//   Burns a fixed amount of $RIP (pack.burn) from the user's wallet —
+//   tokens are destroyed, no treasury, no SOL fee. The rip opens only
+//   after the burn confirms on-chain.
+async function burnRIP(pack) {
+  if (!TOKEN.CA) throw new Error('$RIP is not live yet.');
+  if (!window.solanaWeb3 || !window.splToken) {
+    throw new Error('Wallet libraries still loading — refresh the page and try again.');
+  }
+  if (!window.solana || !window.solana.isPhantom) {
+    if (confirm('Phantom wallet not detected. Open phantom.app to install?')) window.open('https://phantom.app/', '_blank');
+    throw new Error('Phantom wallet required.');
+  }
+  if (!state.wallet) {
+    await connectWallet();
+    if (!state.wallet) throw new Error('Wallet connection cancelled.');
+  }
+  const burnTokens = Math.round(pack.burn || 0);
+  if (!burnTokens) throw new Error('This pack has no $RIP price set.');
+
+  const { Connection, PublicKey, Transaction } = window.solanaWeb3;
+  const SPL = window.splToken;
+  const conn  = new Connection(RPC_URL, 'confirmed');
+  const owner = new PublicKey(state.wallet);
+  const mint  = new PublicKey(TOKEN.CA);
+
+  // auto-detect the mint's token program (classic vs Token-2022) and
+  // decimals straight from chain, so the burn is correct regardless of
+  // what the configured fallbacks say.
+  let PROG = TOKEN.TOKEN2022 ? SPL.TOKEN_2022_PROGRAM_ID : SPL.TOKEN_PROGRAM_ID;
+  let decimals = TOKEN.DECIMALS != null ? TOKEN.DECIMALS : 6;
+  try {
+    const info = await conn.getParsedAccountInfo(mint);
+    const v = info && info.value;
+    if (!v) throw new Error('$RIP mint not found on-chain yet — try again shortly.');
+    if (v.owner) PROG = new PublicKey(v.owner.toBase58 ? v.owner.toBase58() : v.owner);
+    const dec = v.data && v.data.parsed && v.data.parsed.info && v.data.parsed.info.decimals;
+    if (dec != null) decimals = dec;
+  } catch (e) {
+    if (/not found/i.test(e.message)) throw e;   // surface the "not live yet" message
+    // otherwise fall back to the configured PROG/decimals
+  }
+  const amount = BigInt(burnTokens) * (10n ** BigInt(decimals));
+
+  // user's associated token account for $RIP
+  const ata = SPL.getAssociatedTokenAddressSync(mint, owner, false, PROG);
+
+  // balance check — can't burn what you don't hold
+  let bal = 0n;
+  try {
+    const r = await conn.getTokenAccountBalance(ata);
+    bal = BigInt(r.value.amount);
+  } catch (e) { bal = 0n; }
+  if (bal < amount) {
+    const have = Number(bal) / Math.pow(10, decimals);
+    throw new Error(`You need ${fmt(burnTokens)} $RIP to rip this pack — you hold ${have.toLocaleString('en-US', { maximumFractionDigits: 2 })}. Grab more on pump.fun.`);
+  }
+
+  const ix = SPL.createBurnCheckedInstruction(ata, mint, owner, amount, decimals, [], PROG);
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+  const tx = new Transaction({ recentBlockhash: blockhash, feePayer: owner }).add(ix);
+  const { signature } = await window.solana.signAndSendTransaction(tx);
+  await conn.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+  return { signature, burned: burnTokens };
+}
+
+async function runRipBurnAndRip(pack, btn) {
+  if (!btn) return;
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px">' +
+                  '<span class="spinner" aria-hidden="true"></span>Burning $RIP…</span>';
+  try {
+    const { signature, burned } = await burnRIP(pack);
+    console.log('[packrip] $RIP burn confirmed:', { pack: pack.id, burned, signature,
+      explorer: `https://solscan.io/tx/${signature}` });
+    state.packs.push({ packId: pack.id, paidWith: 'rip', ripBurned: burned, tx: signature, ts: Date.now() });
+    saveInventory();
+    state.selectedPackId = pack.id;
+    state.lastPayWith = 'rip';
+    openRipModal();
+    setupRipScreen(pack);
+    showScreen('rip');
+  } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    if (/reject|cancel/i.test(msg)) {
+      console.info('[packrip] burn cancelled by user');
+    } else {
+      console.warn('[packrip] burn failed:', e);
+      alert(msg);
     }
   } finally {
     btn.disabled = false;
