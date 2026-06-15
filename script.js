@@ -805,6 +805,7 @@ function closeRipModal() {
   $('ripModal').classList.remove('open');
   document.body.classList.remove('modal-open');
   document.documentElement.classList.remove('modal-open');
+  if (window.cardRing) window.cardRing.stop();
 }
 
 // gate: one free rip per browser (localStorage)
@@ -998,6 +999,7 @@ function setupRipScreen(pack) {
   if (cone)  cone.classList.remove('fire');
   if (callout) { callout.classList.remove('show'); callout.className = 'rarity-callout'; }
   if (spot)  spot.classList.remove('show');
+  if (window.cardRing) window.cardRing.stop();
   if (strip) { strip.classList.remove('show'); strip.innerHTML = ''; }
   if (panel) panel.classList.remove('show');
   if (skip)  skip.classList.remove('hidden');
@@ -1124,6 +1126,7 @@ async function playGachaSequence(pack) {
   rar.textContent = bestCard.rarity.label;
   rar.className = 'card-spot-rarity ' + bestCard.rarity.css;
   document.getElementById('cardSpotlight').classList.add('show');
+  if (window.cardRing) window.cardRing.start(tier.color);
 
   // screen punch on the flip landing for the big tiers
   if (tier.shake) setTimeout(() => shakeStage(stage, tier.shake), 620);
@@ -1211,6 +1214,7 @@ if (skipGachaBtn) skipGachaBtn.addEventListener('click', () => {
   rar.textContent = bestCard.rarity.label;
   rar.className = 'card-spot-rarity ' + bestCard.rarity.css;
   document.getElementById('cardSpotlight').classList.add('show');
+  if (window.cardRing) window.cardRing.start((RIP_TIERS[bestCard.rarity.key] || RIP_TIERS.rare).color);
   renderAllPulls();
   showBuybackPanel(bestCard, pack);
   document.getElementById('gachaSkip').classList.add('hidden');
@@ -3221,4 +3225,115 @@ async function runSolPayAndRip(pack, btn) {
     const r = hero ? hero.getBoundingClientRect() : null;
     if (!r || (r.bottom > 0 && r.top < window.innerHeight)) play();
   });
+})();
+
+// ============================================================
+// ===== CARD RING — pulsing particle ring around the reveal =====
+//   Vanilla port of the p5/GSAP particle ring: a circle of
+//   particles with a traveling shrink/scatter wave, tinted to the
+//   pulled card's rarity. Lightweight 2D canvas (no p5, no GSAP).
+// ============================================================
+window.cardRing = (function () {
+  let canvas, ctx, parts = [], raf = 0, running = false, last = 0, phase = 0;
+  let W = 0, H = 0, R0 = 0, spin = 0, ready = false;
+  const PERIOD = 6;   // seconds for the wave to travel once around
+
+  const reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const easeElasticIn = (x) => {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const c4 = (2 * Math.PI) / 3;
+    return -Math.pow(2, 10 * x - 10) * Math.sin((x * 10 - 10.75) * c4);
+  };
+  const easeBackIn = (x) => (4 * x * x * x) - (3 * x * x); // back.in(3)
+  // value over a particle's local cycle: tight -> scatter -> tight
+  function cycleVal(t) {
+    if (t < 0.5) return easeElasticIn(t / 0.5);
+    return 1 - easeBackIn((t - 0.5) / 0.5);
+  }
+
+  function parseRGB(str) {
+    if (!str) return '255,255,255';
+    const m = str.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (m) return `${m[1]},${m[2]},${m[3]}`;
+    return '255,255,255';
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = canvas.clientWidth || 560;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(w * dpr);
+    W = canvas.width; H = canvas.height; R0 = W * 0.42;
+  }
+
+  function build(tierRGB) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const N = (window.innerWidth < 600 ? 240 : 360);
+    const palette = ['255,255,255', tierRGB, '196,107,255', '138,31,214', '255,211,90'];
+    parts = [];
+    for (let k = 0; k < N; k++) {
+      const i = k / N;
+      const a = i * Math.PI * 2;
+      parts.push({
+        i, a,
+        size: (1.4 + Math.random() * 3.2) * dpr,
+        offset: Math.pow(1 + Math.random(), 2.5) * (Math.random() < 0.5 ? -1 : 1) * 0.085 * W,
+        col: palette[Math.floor(Math.random() * palette.length)],
+      });
+    }
+  }
+
+  function frame(ts) {
+    if (!running) return;
+    if (!last) last = ts;
+    const dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    phase = (phase + dt / PERIOD) % 1;
+    spin += dt * 0.06;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    const cx = W / 2, cy = H / 2;
+    for (let k = 0; k < parts.length; k++) {
+      const p = parts[k];
+      const t = (phase + p.i) % 1;
+      const val = cycleVal(t);
+      const r = R0 + val * p.offset;
+      const ang = p.a + spin;
+      const x = Math.cos(ang) * r + cx;
+      const y = Math.sin(ang) * r + cy;
+      ctx.fillStyle = `rgba(${p.col},0.85)`;
+      ctx.beginPath();
+      ctx.arc(x, y, p.size, 0, 6.2832);
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start(tierColor) {
+    if (reduce) return;
+    if (!ready) {
+      canvas = document.getElementById('cardRing');
+      if (!canvas) return;
+      ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      window.addEventListener('resize', () => { if (running) { resize(); build(parseRGB(window._ringTier)); } });
+      ready = true;
+    }
+    window._ringTier = parseRGB(tierColor);
+    resize();
+    build(window._ringTier);
+    canvas.classList.add('show');
+    if (!running) { running = true; last = 0; raf = requestAnimationFrame(frame); }
+  }
+
+  function stop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    if (canvas) { canvas.classList.remove('show'); if (ctx) ctx.clearRect(0, 0, W, H); }
+  }
+
+  return { start, stop };
 })();

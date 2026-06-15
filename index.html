@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
 </head>
 <body>
   <!-- liquid-glass distortion filter (opt-in via .glass-distort) -->
@@ -716,6 +716,8 @@
         <div class="spot-cone" id="spotCone" aria-hidden="true"></div>
         <!-- giant rarity callout text -->
         <div class="rarity-callout" id="rarityCallout">RARE</div>
+        <!-- pulsing particle ring that encircles the revealed card -->
+        <canvas class="card-ring" id="cardRing" aria-hidden="true"></canvas>
         <!-- spotlight reveal: real card materializes here, flips from back to front -->
         <div class="card-spotlight" id="cardSpotlight">
           <div class="card-spot-glow"></div>
@@ -840,6 +842,6 @@
       : solanaWeb3;
     window.dispatchEvent(new Event('solanaWeb3Ready'));
   </script>
-  <script src="script.js?v=29"></script>
+  <script src="script.js?v=30"></script>
 </body>
 </html>

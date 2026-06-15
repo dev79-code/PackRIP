@@ -4024,6 +4024,19 @@ svg[stroke="currentColor"] {
 
 .rip-pack.done { opacity: 0; pointer-events: none; }
 
+/* pulsing particle ring around the revealed card */
+.card-ring {
+  position: absolute; top: 50%; left: 50%;
+  width: min(560px, 92vw); height: min(560px, 92vw);
+  transform: translate(-50%, -50%);
+  z-index: 9; pointer-events: none;
+  opacity: 0; transition: opacity 0.5s ease;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 4px rgba(138,31,214,0.55));
+}
+.card-ring.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .card-ring { display: none; } }
+
 /* ===== hit card flip reveal =====
    scaleX "squash" flip + opacity face-swap at the squash midpoint —
    no 3D / backface-visibility (which renders inconsistently), so the
